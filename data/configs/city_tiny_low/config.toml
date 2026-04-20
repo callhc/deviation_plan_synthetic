@@ -1,0 +1,13 @@
+net_path = "city_tiny_low/city_tiny.net.xml"
+output_path = "output_city_tiny_low/"
+
+sim_begin_time = 0
+sim_end_time = 86400
+data_aggr_frequency = 3600
+
+max_num_vehicles = 1000
+min_region_path_len = 3
+num_link_path_per_reg_path = 3
+
+[taz]
+path = "city_tiny_low/city_tiny.taz.xml"

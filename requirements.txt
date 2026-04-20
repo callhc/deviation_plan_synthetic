@@ -1,0 +1,11 @@
+# Python 3.11+ required (tomllib is part of the standard library from 3.11)
+#
+# sumolib is NOT listed here — it is bundled with the SUMO distribution.
+# Set SUMO_HOME and add $SUMO_HOME/tools to PYTHONPATH before running.
+# See: https://sumo.dlr.de/docs/Installing/
+
+numpy>=1.26
+pandas>=2.1
+networkx>=3.2
+matplotlib>=3.8
+scipy>=1.12

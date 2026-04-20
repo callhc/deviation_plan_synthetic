@@ -1,0 +1,297 @@
+\section{Foundations and Related Work}
+
+\subsection{Traffic digital twins for decision support}
+\begin{bluenote}
+Define the concept of a traffic digital twin in the context of urban traffic planning. It reviews
+how digital twins are used for analyses and positions the work specifically on disruption management
+and detour assessment.
+\end{bluenote}
+
+\subsubsection{Digital twins in traffic simulation}
+\label{dt_traffic_simulation}
+
+\textbf{Digital twin and data mining.} Recent advances have seen digital twin leveraged in urban
+mobility to integrate real-time and historical data (from sensors, cameras and vehicles)
+\cite{data_mining_dt}. The integration of advanced data mining techniques such as trajectory mining,
+which exploits the information of trajectories for both private and public vehicles, and process
+mining, which extracts processes from available event logs in information systems, within digital
+twin frameworks can reveal mobility patterns, detect traffic anomalies, and simulate possible
+scenarios.
+
+However, the deployment of such systems is not without significant challenges. Foremost among these
+is the need for continuous, reliable data acquisition. In addition, although mining trajectory data
+enhances the ability to simulate mobility behaviors, it also raises significant privacy issues. For
+large metropolitan areas, the demand for real-time processing introduces further complications, as
+scenario simulations often need to meet stringent latency constraints.
+
+\textbf{Digital twins in intelligent transport systems.} Digital twins in intelligent transport
+systems (ITS) are digital replicas of real-world transport networks, providing a testbed for
+simulating, analyzing, and optimizing traffic management strategies before their deployment in the
+physical world \cite{intelligent_transport}. ITS integrate services across the city (including
+traffic authorities, emergency responders, and public services) to enable greater coordination,
+faster response times, and improved interactions between road users compared to conventional
+systems. As discussed in \cite{intelligent_transport}, digital twins can model dynamics of urban
+traffic flows by integrating real-time data from sensors, vehicles, and control centers, thereby
+supporting predictive analytics and data-driven decision making.
+
+These digital representations play a vital role in modern intelligent transportation systems,
+enabling traffic management centers to shift from operator-dependent decision-making to more
+automated and data-driven strategies. According to Rudskoy et al. \cite{intelligent_transport}, the
+definition of a digital twin in this context is ``a module that reproduces a detailed digital model
+of the road and allows for modeling and experiments.'' The primary purpose is to test solutions and
+simulate various traffic scenarios before implementation in the real world.
+
+The implementation of digital twins in ITS helps address key challenges in transport networks
+including traffic optimization, management of transport during accidents or special events and
+improving road safety.
+
+\subsubsection{Simulation and mobility}
+
+Simulation plays a pivotal role in mobility research, enabling the testing and analysis of various
+traffic management and vehicle technologies in controlled, reproducible environments. Two notable
+applications from recent literature are highlited below:
+
+\textbf{AI-driven traffic simulation.} Talha Azfar and Ruimin Ke \cite{ai_driven_simulation} have
+demonstrated the effectiveness of combining artificial intelligence with co-simulation environments
+for urban mobility. Co-simulation means running different simulators together to model how connected
+systems work as a whole \cite{cosimulation}. AI-agents using computer vision
+(YOLO V5/V8\thesisurlfootnote{https://docs.ultralytics.com/fr/yolov5/}, which are models designed
+for object detection) for real-time traffic observation were compared against statically configured
+traffic lights. Performance metrics such as mean speed, total travel time and mean waiting time were
+evaluated under medium and heavy traffic conditions. The results shows that the AI-agents reduce
+mean waiting time and total trip duration especially with ground-truth data.
+
+These results underscore the importance of simulation-based optimization. The integration of
+multi-agent reinforcement learning and computer vision in a co-simulation framework enables
+realistic evaluation and adaptation of traffic control strategies before real-world deployment.
+
+\textbf{Simulation-based traffic light optimization.} Mehdi et al.
+\cite{traffic_light_simulation} proposed an innovative modification to the traditional three-phase
+traffic light system by introducing a four-stroke traffic light and directly measuring its impact at
+a critical intersection in downtown Urmia, Iran. While previous research has explored a variety of
+advanced algorithms (including queuing theory, stochastic modeling, variable-phase timing, and even
+neural networks) to minimize vehicle waiting times, this work focuses on an alternative signal
+configuration.
+
+By using Arena Simulation Software\thesisurlfootnote{https://www.rockwellautomation.com/fr-be/products/software/arena-simulation.html},
+the authors developed a comprehensive model capturing real-world vehicle arrival and departure
+patterns at the intersection. Through systematic comparison of the conventional three-phase setup
+with the proposed four-phase system across multiple traffic scenarios, the results indicated that
+the four-stroke signal configuration significantly reduced the average time vehicles spent in the
+system.
+
+Although the study is centered on a single intersection, its findings highlight the potential
+benefits of rethinking conventional traffic light algorithms. Future research should investigate
+whether implementing such four-phase signal schemes at a broader, network-wide scale could further
+alleviate congestion and improve overall urban mobility.
+
+\subsubsection{Positioning of this work}
+
+This work builds upon and extends the several existing contributions discussed before in the field
+of traffic simulation and digital twins. A tutorial for traffic modeling using SUMO provides a
+step-by-step guide to generate and simulate traffic scenarios \cite{sumo_tutorial}. This
+methodology serves as the foundation for constructing a realistic simulation scenario for the
+Brussels region, contributing to the development of a reliable digital twin based on local data.
+Additionally, while a case study already exists for traffic simulation in Brussels using incomplete
+data \cite{sparse_data_SUMO}, the proposed approach further leverages the HybridIoT methodology
+introduced in that work to enhance model accuracy by estimating missing traffic information.
+HybridIoT is a multi-agent system (MAS)-based approach designed to estimate missing environmental
+data in large-scale environments \cite{hybridiot}. Lastly, as discussed before, an interactive tool
+named \textit{TrafficTwin} has been developed to support traffic management experts in designing and
+evaluating road deviation plans \cite{SIM_param}. The current work builds on this concept, adapting
+and extending it. A new module is proposed for SUMO to facilitate the creation and simulation of
+detour strategies, with the aim of assisting authorities such as
+\emph{Bruxelles Mobilité}\thesisurlfootnote{https://be.brussels/fr/propos-de-la-region/structure-et-organisation/administrations-et-institutions-de-la-region/bruxelles-mobilite}
+in optimizing roadwork planning. The overarching goal is to ensure the tool remains accessible, with
+the potential for broader deployment to the general public.
+
+\subsection{Traffic simulation for oprational planning}
+\begin{bluenote}
+Introduce microscopic traffic simulation principles and explains why SUMO is appropriate for the
+work. It also discusses key limitations.
+\end{bluenote}
+
+\subsubsection{Traffic simulation tools}
+
+Traffic congestion is one of the major challenges faced by modern cities and is expected to get
+worse with increasing population and vehicle usage \cite{increasing_traffic,increasing_cars}. Traffic
+simulation tools have been developed as mathematical and computational models that replicate
+real-world traffic behavior and dynamics \cite{TST_def}. These tools help transportation planners
+and engineers to optimize road networks designs or estimate traffic-related emissions.
+
+Traffic simulations are commonly categorized into three main types based on the level of detail
+desired \cite{TST_types}:
+\begin{enumerate}
+\item \textbf{Microscopic Simulation}: Models each traffic participant (e.g., vehicles,
+pedestrians) individually. Agents continuously in time and space respond to their immediate
+environment. The global traffic dynamics is the result of the sum of these individual decisions and
+behaviors.
+\item \textbf{Mesoscopic Simulation}: Still represents individual agents, but their behavior is
+determined by average traffic conditions like speed or density. Agents only interact directly at key
+points in the network, such as intersections.
+\item \textbf{Macroscopic Simulation}: Looks at traffic as a whole rather than focusing on
+individual vehicles.
+\end{enumerate}
+
+Choosing a simulation type entails balancing computational cost and realism. For instance,
+microscopic simulation is ideal for projects that require modeling of individual behaviors or the
+testing of interventions at the street or intersection level, which is often necessary for a dense
+urban environment such as Brussels. In contrast, a macroscopic simulation might suffice for
+citywide traffic forecasting or strategic planning, where the focus is on broader patterns rather
+than local details.
+
+\subsubsection{SUMO}
+
+\textbf{SUMO} (Simulation of Urban MObility) is an open-source, highly portable, microscopic and
+continuous multimodal traffic simulation tool. It allows detailed modeling of individual vehicles,
+each following its own route through a specified road network. As a microscopic simulator, SUMO
+treats every vehicle as an individual entity with specific behaviors and interactions. The tool is
+multi-modal enabling the simulation of diverse traffic participants including cars, public transport
+vehicles and pedestrians \cite{SUMO_eclipse,SUMO_homepage,SUMO_doc_glance}.
+
+SUMO provides some tools to setup the simulation and managing the data of the road network
+\cite{SUMO_eclipse,SUMO_doc_glance}. In this project, the following components of the SUMO
+ecosystem are particularly relevant:
+\begin{itemize}
+\item \textbf{sumo}: Executes command-line-based microscopic traffic simulations without graphical
+visualization.
+\item \textbf{netconvert}: Imports and converts road network data from various formats into the
+internal SUMO network format.
+\item \textbf{duarouter}: Computes optimal routes across the network based on demand inputs and
+performs Dynamic User Assignment (DUA).
+\end{itemize}
+
+SUMO has been used extensively to model real-world traffic systems in diverse urban contexts,
+including cities such as Berlin, Dublin and Turin \cite{SUMO_scenarios}. Each scenario adapts to
+the specific traffic dynamics and urban characteristics of its location:
+
+\begin{enumerate}
+\item \textbf{Berlin}: Berlin has served for large-scale traffic simulations using SUMO. The ``24
+Hours of Traffic in Berlin'' scenario captures over 2.2 million trips within an 800km² area. This
+model enhances traditional traffic simulations by incorporating motorized private vehicles alongside
+realistic bus schedules derived from actual General Transit Feed Specification (GTFS) data,
+representing 89\% of the city's bus lines. This scenario allows for holistic analyses that combine
+traffic, communication (including V2X and LTE/5G) and application simulations, making it suited for
+smart mobility researches. \cite{berlin_scenario}
+\item \textbf{Dublin}: The study by Gueriau and Dusparic \cite{dublin_scenario} leverages SUMO to
+simulate and analyze the impact of connected and autonomous vehicles (CAVs) on real Irish road
+networks, covering urban, national and motorway settings. Using detailed demand and network data
+from Dublin and surrounding areas, the research quantifies how varying CAV penetration rates affect
+both traffic efficiency and open dataset for benchmarking the effects of emerging vehicle
+technologies in mixed traffic environments.
+\item \textbf{Turin}: Leveraging real-world data, the TuSTScenario \cite{turin_scenario} provides a
+highly detailed SUMO-based simulation of metropolitan Turin, covering over 602.61km². The model
+integrates structural road information from OpenStreetMap, validated average speeds from Google
+APIs, actual traffic light programming and real trip demands from local mobility services. With more
+than 2.2 million simulated daily trips and validated against city sensor data, this scenario enables
+realistic studies of urban traffic dynamics and congestion patterns.
+\end{enumerate}
+
+\textbf{Brussels} is also a large city warranting similarly large-scale simulations. However, the
+focus of this study is distinct: rather than prioritizing multi-modal integration or CAV impact, we
+specifically investigate the planning and management of roadworks within the Brussels network. The
+goal is to demonstrate how such interventions can be realistically modeled, analyzed, and optimized
+in SUMO for modern urban infrastructure management.
+
+Beyond traditional traffic flow analysis SUMO has been used to evaluate the effects of technologies
+like virtual traffic lights communication systems where cars directly communicate with each other
+\cite{SUMO_VTL}. This study showed that replacing traffic lights with virtual ones can reduce both
+congestion and the likelihood of traffic accidents. Moreover SUMO can be used in environmental
+research, for instance in assessing the impact of traffic-related emissions on urban air quality
+\cite{SUMO_emission}.
+
+One of the strengths of SUMO is its deterministic core which allows reproducibility of experiments.
+However, this deterministic nature can be a limitation when it comes to capturing the variability in
+human driving behavior which requires the integration of stochastic elements \cite{SUMO_sumo}.
+
+\subsubsection{Alternatives to SUMO}
+
+Several other traffic simulation tools can serve as alternatives to SUMO, each with different
+features, advantages and limitations:
+\begin{enumerate}
+\item \textbf{PTV Vissim}: PTV-Vissim\thesisurlfootnote{https://www.ptvgroup.com/en/products/ptv-vissim}
+is a widely used microscopic traffic simulation software that also supports multi-modal transport
+systems. It offers a broad set of features comparable to those of SUMO. However, it is a
+proprietary tool that requires a commercial license, which can restrict its accessibility and limit
+the ability to implement custom modifications at the code level.
+\item \textbf{Aimsun}: Aimsun\thesisurlfootnote{https://docs.aimsun.com/} is a commercial traffic
+simulation platform that supports microscopic, mesoscopic, and macroscopic modeling. While it is
+used in various contexts, its commercial nature introduces licensing costs and reduces flexibility
+for developers who require deeper code-level access and customization.
+\item \textbf{CityFlow}: CityFlow \cite{cityflow} an open-source microscopic simulator designed for
+efficient, large-scale urban traffic simulations, capable of handling thousands of intersections
+with high computational efficiency. Its architecture is highly optimized for speed and parallel
+execution, making it over twenty times faster than SUMO in large-scale benchmarks
+\cite{cityflow_rl}. CityFlow is particularly popular in the field of artificial intelligence and
+reinforcement learning, serving as a benchmark for multi-agent adaptive traffic signal control and
+dynamic routing tasks. However, CityFlow remains limited compared to SUMO in certain areas: it
+offers fewer out-of-the-box features for conventional traffic simulation, has a less mature
+ecosystem, and does not natively support the simulation of public transportation modes such as
+buses, trams, or trains, which restricts its suitability for comprehensive, multi-modal urban
+simulations.
+\end{enumerate}
+
+\subsubsection{Why prefer SUMO}
+
+SUMO was selected for this project based on the following criteria:
+\begin{itemize}
+\item \textbf{Open-source}: SUMO's open-source status allows users to freely modify, adapt, and
+extend the software, making it suitable for research and academic use where flexibility and
+transparency are important. This degree of code-level access is not available in proprietary tools
+like PTV Vissim or Aimsun.
+\item \textbf{Community and documentation}: SUMO benefits from a large active community that
+contributes regularly to new features or bug fixes. In addition, it offers extensive documentation
+and a wide range of tutorials, which significantly lower the learning curve for new users.
+\item \textbf{Microscopic and multi-modal simulation}: SUMO provides detailed agent-based
+(microscopic) modeling of cars, public transport, and pedestrians. While other simulators such as
+Vissim and Aimsun also support microscopic and multi-modal simulation, SUMO's implementation is
+open, which enables deeper customization and integration for research needs.
+\item \textbf{Integration and flexibility}: SUMO's design and command-line tools (like
+\texttt{netconvert} and \texttt{duarouter}) facilitates working on various data sources making it
+easy to connect with external components.
+\end{itemize}
+
+Commercial tools like PTV Vissim and Aimsun offer advanced graphical user interfaces and support;
+however, their proprietary nature limits customizability and long-term usability in research
+settings. CityFlow, while open-source and scalable, lacks SUMO's extensive documentation and wider
+range of traffic simulation features relevant for this project's objectives.
+
+\subsection{Metrics for urban traffic planning}
+\begin{bluenote}
+Explain what ``impact'' is, it can be defined at different levels, network efficiency, specific user
+impact, delay etc. Motivates the need of a multi-metric perpective and sets the foundations for
+later scoring and ranking strategies
+\end{bluenote}
+
+\subsection{Stochastic simulation}
+\begin{bluenote}
+Why a single run is not enough, introduce Monte Carlo simulation, estimating performance
+distributions and supporting decisions with confidence.
+\end{bluenote}
+
+In the context of a Digital Twin for traffic management (especially one designed to evaluate
+deviation plans for disruptions like roadworks or accidents) the treatment of uncertainty is not
+merely a technical refinement but a fundamental requirement for validity
+\cite{digital_twin_transport,flow_twin}. Traffic is a stochastic process and small perturbations in
+the initial conditions can propagate to cause macroscopic differences in flow and congestion
+patterns \cite{stochastic_macroscopic}.
+
+Stochastic simulation introduces randomness into the model to mimic the real-world uncertainties in
+demand, driver behaviour and network conditions \cite{application_stochastic_risk}. By treating
+model inputs and parameters as random variables rather than fixed values, stochastic simulations
+generate a distribution of possible outcomes that better reflects the variability of traffic states.
+This transition from point-estimates to probabilistic distributions allows for the application of
+risk assessment frameworks, enabling planners to weigh the trade-offs between efficiency and
+reliability.
+
+\subsubsection{Theoritical foundations of the Monte Carlo method}
+
+The Monte Carlo method is a broad class of computational algorithms that rely on repeated random
+sampling to obtain numerical results. The underlying concept is to use randomness to solve problems
+that might be deterministic in principle but are too complex to solve analytically due to the high
+dimensionality of the problem.
+
+\subsection{Multiple-criteria decision analysis}
+
+The multiple-criteria decision analysis (MCDA) aims to help in situations where multiple criteria,
+most of the time contradictory, must be.

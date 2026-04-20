@@ -1,0 +1,47 @@
+net_path = "city_tiny_very_high/city_tiny.net.xml"
+output_path = "output_city_tiny_very_high/"
+
+sim_begin_time = 0
+sim_end_time = 86400
+data_aggr_frequency = 3600
+
+max_num_vehicles = 15200
+min_region_path_len = 3
+num_link_path_per_reg_path = 3
+
+[taz]
+path = "city_tiny_very_high/city_tiny.taz.xml"
+
+[commute_pattern]
+peak_weight = 3.5
+commute_distance_decay_beta = 0.0
+morning_peak_hour = 8
+evening_peak_hour = 17
+sigma_hours = 1.8
+
+[commute_pattern.zone_role_weights]
+# Residential Outskirts
+"0_2" = { residential = 0.90, work = 0.10 }
+"0_3" = { residential = 0.90, work = 0.10 }
+"1_1" = { residential = 0.85, work = 0.15 }
+"1_4" = { residential = 0.85, work = 0.15 }
+"4_0" = { residential = 0.80, work = 0.20 }
+"4_1" = { residential = 0.80, work = 0.20 }
+"5_2" = { residential = 0.90, work = 0.10 }
+
+# City Center / Work Hubs
+"2_2" = { residential = 0.10, work = 0.90 }
+"2_3" = { residential = 0.10, work = 0.90 }
+"3_2" = { residential = 0.15, work = 0.85 }
+"3_3" = { residential = 0.15, work = 0.85 }
+
+# Mixed Zones
+"1_2" = { residential = 0.40, work = 0.60 }
+"1_3" = { residential = 0.60, work = 0.40 }
+"2_1" = { residential = 0.50, work = 0.50 }
+"3_1" = { residential = 0.30, work = 0.70 }
+"4_2" = { residential = 0.60, work = 0.40 }
+"2_0" = { residential = 0.70, work = 0.30 }
+"2_4" = { residential = 0.75, work = 0.25 }
+"3_0" = { residential = 0.50, work = 0.50 }
+"3_4" = { residential = 0.65, work = 0.35 }

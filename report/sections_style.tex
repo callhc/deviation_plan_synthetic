@@ -1,0 +1,118 @@
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[english]{babel}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{newcomputermodern}
+\fi
+\usepackage{microtype}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{etoolbox}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{csquotes}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\usepackage[backend=biber,style=ieee]{biblatex}
+
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc}
+
+\urlstyle{same}
+\linespread{1.08}
+\setlength{\parskip}{0pt}
+\setlength{\parindent}{15pt}
+
+\setlist[itemize]{leftmargin=*,topsep=4pt,itemsep=2pt}
+\setlist[enumerate]{leftmargin=*,topsep=4pt,itemsep=2pt}
+
+\graphicspath{{pictures/}{chapters/introduction/pictures/}{chapters/methodology/pictures/}}
+
+\renewcommand{\sectionautorefname}{Section}
+\renewcommand{\subsectionautorefname}{Section}
+\renewcommand{\subsubsectionautorefname}{Section}
+\renewcommand{\paragraphautorefname}{Section}
+\renewcommand{\figureautorefname}{Figure}
+\renewcommand{\equationautorefname}{Equation}
+
+\newcommand{\thesisref}[1]{\textbf{\autoref{#1}}}
+\newcommand{\thesisurlfootnote}[1]{\footnote{\url{#1}}}
+
+\newenvironment{bluenote}{\begingroup\color{blue}}{\par\endgroup}
+\newenvironment{rednote}{\begingroup\color{red}}{\par\endgroup}
+\newenvironment{greennote}{\begingroup\color{ForestGreen}}{\par\endgroup}
+
+\newcommand{\missingassetbox}[1]{%
+  \fbox{%
+    \parbox[c][0.22\textheight][c]{0.82\linewidth}{%
+      \centering\ttfamily Missing asset:\\#1%
+    }%
+  }%
+}
+
+\newcommand{\safeincludegraphics}[2][]{%
+  \IfFileExists{#2}{%
+    \includegraphics[#1]{#2}%
+  }{%
+    \missingassetbox{#2}%
+  }%
+}
+
+\lstdefinestyle{thesiscode}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{black!4},
+  frame=single,
+  framerule=0.8pt,
+  rulecolor=\color{black!20},
+  framesep=8pt,
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\lstdefinestyle{thesisjson}{
+  style=thesiscode,
+  basicstyle=\ttfamily\scriptsize
+}
+
+\titleformat{\section}[block]
+  {\bfseries\fontsize{25}{30}\selectfont}
+  {\thesection}
+  {1em}
+  {}
+\titlespacing*{\section}{0pt}{1.5em}{1.5em}
+\pretocmd{\section}{\clearpage}{}{}
+
+\titleformat{\subsection}[block]
+  {\bfseries\fontsize{14.4}{17}\selectfont}
+  {\thesubsection}
+  {1em}
+  {}
+\titlespacing*{\subsection}{0pt}{1.4em}{1.1em}
+
+\titleformat{\subsubsection}[block]
+  {\bfseries\fontsize{11}{13.2}\selectfont}
+  {\thesubsubsection}
+  {1em}
+  {}
+\titlespacing*{\subsubsection}{0pt}{1.4em}{0.9em}
+
+\titleformat{\paragraph}[block]
+  {\bfseries\normalsize}
+  {\theparagraph}
+  {1em}
+  {}
+\titlespacing*{\paragraph}{0pt}{1em}{0.5em}
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}

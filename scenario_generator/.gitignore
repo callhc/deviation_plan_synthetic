@@ -1,0 +1,22 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+build/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Generated scenario artifacts 
+cache/
+plots/
+trans_mat_definition/
+*.pkl
+out_od.xml
+routes.xml
