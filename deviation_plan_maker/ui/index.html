@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deviation Plan Builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Deviation Plan Builder</h1>
+  <label style="display:flex;align-items:center;gap:8px;color:#555;">
+    Load .net.xml
+    <input type="file" id="file-input" accept=".xml" style="font-size:11px;">
+  </label>
+  <span id="status">No network loaded.</span>
+</header>
+
+<div class="main">
+
+  <!-- canvas -->
+  <div id="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <g id="world"></g>
+    </svg>
+  </div>
+
+  <!-- sidebar -->
+  <div class="sidebar">
+
+    <div>
+      <h3>① Closure</h3>
+      <button class="mbtn on" id="btn-close">🔴 Mark closed edge</button>
+    </div>
+
+    <div>
+      <h3>Closed edge</h3>
+      <span id="closed-display" class="tip">None selected.</span>
+    </div>
+
+    <hr>
+
+    <div>
+      <h3>② Detour</h3>
+      <button class="mbtn" id="btn-detour">🔵 Add detour edges</button>
+    </div>
+
+    <div>
+      <h3>Detour sequence</h3>
+      <ol id="detour-list"></ol>
+      <p id="dest-status" class="tip" style="margin-top:6px;"></p>
+    </div>
+
+    <div class="row">
+      <button class="sbtn" id="btn-remove">↩ Remove last</button>
+      <button class="sbtn" id="btn-clear">✕ Clear</button>
+    </div>
+
+    <hr>
+
+    <div>
+      <h3>③ Export</h3>
+      <label style="display:block;margin-bottom:6px;color:#555;">
+        Plan ID
+        <input type="text" id="plan-id" value="manual_01">
+      </label>
+      <button id="export-btn" disabled>Export JSON ↓</button>
+    </div>
+
+    <hr>
+    <p class="tip">
+      Scroll to zoom · drag to pan<br>
+      Hover an edge to see its ID.<br><br>
+      <b>①</b> Click any edge to mark it closed (red).<br>
+      <b>②</b> Switch mode — <span style="color:#e65100;font-weight:600;">amber</span> edges are reachable next.
+        Click them in sequence to build the detour (blue).<br>
+      <b>③</b> Export saves a JSON file ready for <code>detour_plans/</code>.
+    </p>
+
+  </div><!-- /sidebar -->
+</div><!-- /main -->
+
+<script src="network.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
