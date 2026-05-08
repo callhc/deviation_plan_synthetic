@@ -15,7 +15,7 @@ supports the full analysis workflow:
    decision analysis.
 
 The stages are intentionally usable as independent Python packages. There is
-currently no single end-to-end runner in the repository; run the stages you
+currently no single end-to-end runner in the repository, run the stages you
 need explicitly.
 
 ## Repository Structure
@@ -79,7 +79,7 @@ including `trips.xml`.
 
 Build or export a deviation-plan JSON file with `deviation_plan_maker`. The
 package exposes a Python API and a browser-only visual interface at
-`deviation_plan_maker/ui/index.html`; see
+`deviation_plan_maker/ui/index.html`, see
 [`deviation_plan_maker/README.md`](deviation_plan_maker/README.md) for details.
 
 Run Monte Carlo simulations:
