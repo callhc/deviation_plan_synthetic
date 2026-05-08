@@ -1,0 +1,255 @@
+\subsection{Evaluation and decision support}
+\label{subsec:evaluator}
+
+The last step is the evaluation of the simulated plans. At this point no new
+traffic is generated and no additional SUMO simulations are run. The task is
+to take the repeated outputs from the Monte Carlo experiment and compare the
+candidate detours in a way that is fair, reproducible and useful for the
+final discussion. The key point is to keep the paired structure of the
+experiment: for each Monte Carlo seed, the evaluator has one baseline result
+and one result for each candidate deviation plan. Each plan is compared
+against the baseline from the same run, not against an unrelated average.
+
+In practice, the evaluation is organised around three questions:
+\begin{itemize}
+  \item How much each plan changes the network-level performance compared with the baseline.
+  \item Whether the plan remains feasible, in particular whether it avoids reducing the number of completed trips.
+  \item Among the feasible plans, which alternatives still look reasonable after Pareto screening and a sensitivity check on the decision weights.
+\end{itemize}
+
+\subsubsection{Choice of evaluator metrics}
+\label{sssec:evaluator_metric_choices}
+
+The evaluator does not try to prove that one detour is universally best. It
+separates the comparison into quantities that answer different planning
+questions:
+\begin{itemize}
+  \item \textbf{Total time-loss delay} measures the network-level congestion
+        burden created or removed by a plan. It is the primary efficiency
+        metric because it captures both queues and slow movement relative to
+        the vehicle's ideal route traversal.
+  \item \textbf{Mean travel time} measures the average trip burden for
+        completed vehicles. It complements time-loss delay because a plan can
+        reduce congestion on the chosen route while still making paths longer,
+        or conversely add local congestion while shortening many trips.
+  \item \textbf{Completed and unfinished trips} are used as a feasibility
+        diagnostic. A plan must not appear good merely because more vehicles
+        fail to finish within the simulation window and are therefore absent
+        from completed-trip averages.
+  \item \textbf{Fraction of impacted users delayed} focuses on the vehicles
+        whose route actually changed. Network averages can hide a plan that
+        performs well overall but imposes most of the cost on the directly
+        affected users.
+\end{itemize}
+
+These metrics are also practical: they are available for every Monte Carlo run
+from SUMO's \texttt{tripinfo.xml} output and from the route comparison step, so
+the same definitions can be applied consistently to every candidate plan. The
+statistical tests reported by the evaluator are diagnostic checks on the
+paired effects, they are not the ranking rule. The final decision layer uses
+effect sizes, feasibility, Pareto dominance and weight sensitivity.
+
+\subsubsection{Comparable run set}
+\label{sssec:evaluator_comparable_runs}
+
+The first operation is to identify the runs that can actually be compared.
+The evaluator scans the Monte Carlo output directory for
+\texttt{run\_\#/results.json} files and keeps a run only when it contains the
+baseline and all candidate plans listed in \texttt{summary.json}. Runs with
+missing plan outputs are left out of the paired analysis, but they are still
+recorded in the metadata so that the exclusion is visible.
+
+This step avoids comparing one plan over more replications than another. After
+the filtering, every paired statistic is computed on the same run identifiers
+for every plan. If no complete run is available, the evaluator stops instead
+of producing a ranking based on incomplete evidence.
+
+\subsubsection{Paired network-level statistics}
+\label{sssec:evaluator_paired_stats}
+
+For every plan $\mathcal{D}_k$ and every retained Monte Carlo run $r$, the
+basic quantity is the difference between the plan and the baseline from the
+same run. For the primary network-level metric, this gives
+\begin{equation}
+  \Delta D_k^{(r)} = D_k^{(r)} - D_0^{(r)},
+  \label{eq:evaluator_delta_delay}
+\end{equation}
+where $D_0^{(r)}$ is the baseline time-loss delay from run $r$ and
+$D_k^{(r)}$ is the corresponding value after applying plan $\mathcal{D}_k$.
+For mean travel time, the same construction is used:
+\begin{equation}
+  \Delta \bar{\tau}_k^{(r)}
+  =
+  \bar{\tau}_k^{(r)} - \bar{\tau}_0^{(r)}.
+  \label{eq:evaluator_delta_travel_time}
+\end{equation}
+
+The sign convention is kept simple: a positive paired difference means that
+the plan worsened the metric in that run and a negative value means that it
+improved it. The full vector of paired differences is kept, not only the
+average, because the consistency of an effect matters as much as its mean.
+
+For a generic paired-difference vector
+$x_1,\ldots,x_n$, the evaluator reports
+\begin{equation}
+  \bar{x},\quad s,\quad \min(x),\quad \max(x),\quad \tilde{x},
+  \label{eq:evaluator_descriptive_stats}
+\end{equation}
+where $\bar{x}$ is the sample mean, $s$ the sample standard deviation and
+$\tilde{x}$ the median. The mean estimates the expected effect of the plan
+over the seed distribution, the standard deviation describes run-to-run
+variability and the median is kept as a robust centre when a few runs are
+extreme.
+
+The confidence interval answers a different question: how precisely the
+Monte Carlo experiment has estimated the mean paired effect. Because the true
+standard deviation of the paired effects is unknown and must be estimated
+from the $n$ replications, the normal critical value is replaced by the
+Student-\textit{t} critical value. The Student-\textit{t} distribution has
+heavier tails than the normal distribution, so it gives wider intervals when
+only a small number of runs is available. The evaluator uses the standard
+95\% level, corresponding to a two-sided 5\% error rate, as a conventional
+compromise between intervals that are too narrow to be reliable and intervals
+that are too wide to be useful. The interval is computed as
+\begin{equation}
+  \bar{x}
+  \pm
+  t_{0.975,\,n-1}\frac{s}{\sqrt{n}},
+  \label{eq:evaluator_t_interval}
+\end{equation}
+when at least two runs are available. In repeated experiments satisfying the
+usual independence assumptions, this procedure would contain the true mean
+effect in about 95\% of such intervals, it does not mean that there is a
+95\% probability that this particular realized interval contains the truth.
+
+Two diagnostic hypothesis tests are reported for each paired metric. Both ask
+whether the observed paired effects are compatible with a zero-effect
+baseline. The paired one-sample \textit{t}-test checks the null hypothesis
+\begin{equation}
+  H_0: \mathbb{E}[\Delta M_k] = 0,
+\end{equation}
+where $\Delta M_k$ is the paired effect of plan $k$ on the metric being
+tested. It is most appropriate when the paired differences are approximately
+normally distributed. A Wilcoxon signed-rank test is also reported as a
+non-parametric companion. It ranks the absolute non-zero paired differences,
+attaches the original signs and checks whether positive and negative ranks are
+balanced around zero. This makes the check less dependent on the normality
+assumption, which is useful for traffic simulation outputs with small samples
+or occasional extreme runs.
+
+\subsubsection{Feasibility gate}
+\label{sssec:evaluator_feasibility}
+
+Before plans are ranked, they pass through a completed-trip feasibility check.
+A candidate is considered feasible only if it completes at least as many trips
+as the baseline in every retained run:
+\begin{equation}
+  C_k^{(r)} \geq C_0^{(r)}
+  \qquad
+  \forall r \in \{1,\ldots,n\},
+  \label{eq:evaluator_feasibility}
+\end{equation}
+where $C_k^{(r)}$ is the number of completed trips under plan
+$\mathcal{D}_k$. The reason for this rule is straightforward: a detour should
+not look better simply because more vehicles failed to arrive before the end
+of the simulation window. Plans that fail the gate are still shown in the
+report, but they are not allowed into the Pareto screening or weighted score.
+
+\subsubsection{Impacted-vehicle metrics}
+\label{sssec:evaluator_impacted_users}
+
+Network-level metrics are necessary, but they can hide what happens to the
+drivers who are directly affected by the closure. For this reason, the
+evaluation also considers an impacted vehicle set. When route files are
+available, a vehicle is counted as impacted for a plan if its edge sequence
+differs between the baseline route file and the plan-specific route file:
+\begin{equation}
+  \mathcal{I}_k =
+  \{\,v : R_{k,v} \neq R_{0,v}\,\}.
+  \label{eq:evaluator_impacted_set}
+\end{equation}
+If route-difference information is not available, the evaluator can fall back
+to the vehicles whose baseline route crosses the closed edge. This is less
+precise, but it still keeps the analysis focused on users directly connected
+to the disruption.
+
+For each retained run, the impacted-user analysis compares only vehicles that
+are present and completed in both the baseline and plan \texttt{tripinfo.xml}
+files. It reports the total additional travel time for impacted users,
+\begin{equation}
+  \Delta T_{k,\mathcal{I}}^{(r)}
+  =
+  \sum_{v \in \mathcal{I}_k}
+  \left(\tau_{k,v}^{(r)} - \tau_{0,v}^{(r)}\right),
+  \label{eq:evaluator_impacted_delta_time}
+\end{equation}
+the mean effective speed over their trajectories and the fraction of impacted
+users who are delayed:
+\begin{equation}
+  \phi_k^{(r)}
+  =
+  \frac{
+    |\{\,v \in \mathcal{I}_k :
+      \tau_{k,v}^{(r)} > \tau_{0,v}^{(r)}\,\}|
+  }{
+    |\mathcal{I}_k|
+  }.
+  \label{eq:evaluator_phi}
+\end{equation}
+The mean of $\phi_k^{(r)}$ across runs is used as one of the three decision
+criteria. Lower values are preferred, because they mean that a smaller share
+of directly affected users experiences a travel-time increase.
+
+\subsubsection{Multi-criteria decision analysis}
+\label{sssec:evaluator_mcda}
+
+The final ranking is built in three steps. First, infeasible plans are removed
+by the completed-trip gate of Section~\ref{sssec:evaluator_feasibility}.
+Second, the remaining plans are screened for Pareto dominance using three cost
+criteria:
+\begin{equation}
+  \left(
+    \overline{\Delta D_k},
+    \overline{\Delta \bar{\tau}_k},
+    \overline{\phi_k}
+  \right).
+  \label{eq:evaluator_criteria_vector}
+\end{equation}
+A feasible plan $a$ Pareto-dominates a feasible plan $b$ if it is no worse on
+all three criteria and strictly better on at least one. Dominated plans are
+removed before the weights are applied. This prevents the final ranking from
+selecting a plan that is worse than another available plan on all measured
+dimensions.
+
+Third, the plans left on the Pareto front are ranked with a normalized
+additive score. For each criterion $q$, values are min-max normalized over the
+Pareto front:
+\begin{equation}
+  z_{kq}
+  =
+  \frac{x_{kq} - \min_j x_{jq}}
+       {\max_j x_{jq} - \min_j x_{jq}},
+  \label{eq:evaluator_normalisation}
+\end{equation}
+with $z_{kq}=0$ when all surviving plans have the same value on criterion
+$q$. The composite score is then
+\begin{equation}
+  S_k = \sum_q w_q z_{kq},
+  \label{eq:evaluator_additive_score}
+\end{equation}
+where all criteria are costs and lower scores are better. The reference
+configuration gives equal weight to network time-loss delay, mean travel time and the
+fraction of impacted users delayed. This should be read as a neutral starting
+point, not as a claim that the three dimensions are inherently equally
+important.
+
+Because the weights contain judgement, the evaluator also checks how sensitive
+the ranking is to them. It samples weight vectors uniformly from the
+three-criterion simplex using a Dirichlet$(1,1,1)$ distribution. Here a
+weight vector is a triple $(w_1,w_2,w_3)$ with non-negative entries that sum
+to one. For each sampled weight vector, the evaluator
+recomputes the ranking. The report then shows how often each
+Pareto-efficient plan ranks first, its mean rank, score quantiles and
+pairwise win probabilities. A plan that wins under the reference weights and
+also remains strong under many sampled weights is more convincing than a plan
+that only wins under a narrow weighting assumption.

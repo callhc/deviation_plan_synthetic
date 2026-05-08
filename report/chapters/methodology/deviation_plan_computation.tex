@@ -1,0 +1,567 @@
+\subsection{Deviation plan computation}
+\label{subsec:deviation_plan_maker}
+
+After demand generation, the next step is to define how the network can bypass
+the closure. The \texttt{deviation\_plan\_maker} takes the SUMO network and a
+user-selected closure as input, then returns candidate detour paths around the
+disrupted segment. These plans are not evaluated at this stage, they are passed
+unchanged to the Monte Carlo simulation.
+
+Formally, let $G = (V, E, \ell)$ be a weighted directed graph in which $V$
+is the set of junctions, $E$ the set of road edges and
+$\ell : E \to \mathbb{R}_{>0}$ an edge length function. Given a set of
+closed edges $E_c \subset E$ and a blocked set $B \supseteq E_c$, a
+\emph{deviation plan} is defined as a tuple
+\begin{equation}
+  \mathcal{D} \;=\; \bigl(s,\;\, t,\;\, P,\;\, \ell(P),\;\, d\bigr),
+  \label{eq:deviation_plan}
+\end{equation}
+where $s \in V$ is the \emph{origin} of this particular plan (the junction
+at which the detour begins) and $t \in V$ is the detour target, while
+$P = (e_1, \ldots, e_m)$ is a loopless path in $G' = (V,\, E \setminus B)$
+from $s$ to $t$ and $\ell(P) = \sum_{i=1}^{m} \ell(e_i)$ is its total
+geometric length in meters. The integer $d \in \mathbb{N}_0$ is the
+\emph{BFS depth} of $s$ relative to the \emph{effective detour source}
+returned by the endpoint computation of
+Section~\ref{sssec:detour_endpoints}. In the common case this effective
+source coincides with the upstream junction of the first closed edge
+$s_0 = \mathit{from}(e_1^c)$. If that junction has no usable alternative exit,
+the endpoint computation moves the source further upstream and adds the
+traversed prefix edges to the blocked set~$B$. In the upstream method, the
+origin $s$ can differ from one plan to another: the effective source, $t$ and
+$B$ are shared, but individual plans may start further upstream. When
+$d = 0$, the plan starts at the effective source and acts as the shallowest
+fallback. Plans with $d > 0$ start further upstream and are tried first during
+multi-plan route rewriting.
+
+\subsubsection{Junction-level graph representation}
+
+The \texttt{deviation\_plan\_maker} operates on a \emph{junction-level}
+directed graph, in contrast to the edge-expanded representation used by
+the scenario generator (Section~\ref{par:edge_expanded_network}). Here
+nodes correspond to SUMO junctions and arcs correspond to road edges:
+an arc $(u, v)$ exists for every edge whose \texttt{from} attribute is
+junction $u$ and whose \texttt{to} attribute is junction $v$. Arc weights
+default to the geometric length of the edge in meters. An alternative
+weight can be loaded from a SUMO \texttt{edgedata.xml} file, in which
+case values are averaged across all measurement intervals and the
+resulting mean is stored as the weight, if the field encodes speed
+rather than travel time, the reciprocal is stored instead so that
+shorter weighted distances correspond to faster edges.
+
+The graph is built directly from the \texttt{.net.xml} file. The implementation keeps
+three dictionaries (\texttt{edges}, \texttt{outgoing} and \texttt{incoming})
+that provide $O(1)$ lookup of any edge record and $O(\deg(v))$ enumeration of a
+node's neighbours\footnote{Here, $\deg(v)$ denotes the number of outgoing
+or incoming edges adjacent to node $v$, depending on the direction of the
+enumeration. Thus, neighbour enumeration is linear in the local branching
+factor of the queried junction, not in the total number of edges in the
+network.}. These structures are sufficient for the routing operations used in
+this module.
+
+\subsubsection{Detour endpoint computation}
+\label{sssec:detour_endpoints}
+
+Given a sequence of closed edges $E_c = (e_1, \ldots, e_n)$, the natural
+candidate detour source is the upstream junction of $e_1$ and the
+candidate target is the downstream junction of $e_n$. However, if the
+source junction has only one outgoing edge (the first closed edge
+itself), no detour can diverge from it, the same problem arises
+symmetrically at the target if it has only one incoming edge.
+
+To handle this, the algorithm walks upstream from the source and downstream
+from the target until it reaches junctions with at least two outgoing
+(resp.\ incoming) edges. Every intermediate edge encountered during these
+walks is added to the blocked set, so the router cannot reuse it as a shortcut.
+\textbf{Figure~\ref{fig:detour-endpoints}} illustrates the procedure on a small
+graph in which the natural endpoints $s_0$ and $t_0$ are both dead ends,
+and the walks promote $s$ and $t$ as the actual detour endpoints.
+
+\begin{algorithm}[htbp]
+\caption{\textsc{FindDetourEndpoints} (high-level idea)}\label{alg:find-endpoints}
+\begin{algorithmic}[1]
+\Require closed edge sequence $E_c$, graph $G$
+\Ensure source $s$, target $t$, extended blocked set $B$
+\State start with $s$ and $t$ at the upstream and downstream ends of the closure
+\State initialise $B$ with the closed edges
+\While{$s$ has only one way out (the closure itself)}
+  \State step one junction further upstream and add the traversed edge to $B$
+\EndWhile
+\While{$t$ has only one way in}
+  \State step one junction further downstream and add the traversed edge to $B$
+\EndWhile
+\State \Return $s$, $t$, $B$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  >={Stealth[length=5pt]},
+  node distance=1.5cm and 1.5cm,
+  every node/.style={font=\small},
+  jct/.style={circle, draw, fill=white, minimum size=8mm, inner sep=0pt, thick},
+  endp/.style={circle, draw=ForestGreen!60!black, fill=ForestGreen!20,
+               minimum size=8mm, inner sep=0pt, very thick},
+  cand/.style={circle, draw=gray!70, dashed, fill=gray!8,
+               minimum size=8mm, inner sep=0pt, thick},
+  edge/.style={-{Stealth[length=5pt]}, thick, gray!55!black},
+  closed/.style={-{Stealth[length=6pt]}, line width=1.4pt, red!75!black},
+  blocked/.style={-{Stealth[length=5pt]}, thick, orange!85!black,
+                  dash pattern=on 3pt off 2pt},
+  walk/.style={-{Stealth[length=5pt]}, thick, blue!65!black, dashed},
+  tag/.style={font=\scriptsize, inner sep=2pt}
+]
+  % main row of junctions (left to right)
+  \node[jct]                  (A)  {$A$};
+  \node[endp, right=of A]     (s)  {$s$};
+  \node[cand, right=of s]     (s0) {$s_0$};
+  \node[jct,  right=of s0]    (m)  {$M$};
+  \node[cand, right=of m]     (t0) {$t_0$};
+  \node[endp, right=of t0]    (t)  {$t$};
+  \node[jct,  right=of t]     (Z)  {$Z$};
+
+  % side branches that give s and t their second neighbour
+  \node[jct, above=1.0cm of s] (X) {$X$};
+  \node[jct, above=1.0cm of t] (Y) {$Y$};
+
+  % free (untouched) edges
+  \draw[edge] (A) -- (s);
+  \draw[edge] (s) -- (X);
+  \draw[edge] (Y) -- (t);
+  \draw[edge] (t) -- (Z);
+
+  % edges that are walked over and pushed into the blocked set
+  \draw[blocked] (s)  -- (s0);
+  \draw[blocked] (t0) -- (t);
+
+  % closed edges (the closure itself)
+  \draw[closed] (s0) -- (m);
+  \draw[closed] (m)  -- (t0);
+
+  % walk arcs above the row
+  \draw[walk] (s0.north) to[out=135, in=45]
+        node[above, tag] {walk upstream} (s.north);
+  \draw[walk] (t0.north) to[out=135, in=45]
+        node[above, tag] {walk downstream} (t.north);
+
+  % role tags under each labelled node
+  \node[tag, below=1pt of s,  text=ForestGreen!50!black] {final source};
+  \node[tag, below=1pt of s0, text=gray!60!black]        {initial guess};
+  \node[tag, below=1pt of t0, text=gray!60!black]        {initial guess};
+  \node[tag, below=1pt of t,  text=ForestGreen!50!black] {final target};
+
+  % legend
+  \node[draw=gray!40, rounded corners=2pt, fill=gray!3,
+        inner sep=4pt, font=\scriptsize, below=1.2cm of m, align=left] (leg) {%
+    \begin{tabular}{@{}l@{\;\;}l@{}}
+      \tikz[baseline=-0.6ex]\draw[closed]  (0,0) -- (0.6,0);  & closed edge ($\in E_c$) \\
+      \tikz[baseline=-0.6ex]\draw[blocked] (0,0) -- (0.6,0);  & edge added to blocked set $B$ \\
+      \tikz[baseline=-0.6ex]\draw[edge]    (0,0) -- (0.6,0);  & free edge \\
+      \tikz[baseline=-0.6ex]\draw[walk]    (0,0) -- (0.6,0);  & walk performed by the algorithm \\
+    \end{tabular}};
+\end{tikzpicture}
+\caption{Detour endpoint computation on an illustrative graph. The closure
+$E_c = (s_0\!\to\!M,\ M\!\to\!t_0)$ is shown in red. Because $s_0$ has only
+one outgoing edge (the closure itself) and $t_0$ has only one incoming edge,
+neither can serve as a detour endpoint. The algorithm walks one junction
+upstream from $s_0$ to $s$ (which has the additional outgoing edge
+$s\!\to\!X$) and one junction downstream from $t_0$ to $t$ (which has the
+additional incoming edge $Y\!\to\!t$). The two traversed edges (orange,
+dashed) are appended to the blocked set $B$ so they cannot be reused by the
+router as shortcuts around the closure.}
+\label{fig:detour-endpoints}
+\end{figure}
+
+\subsubsection{Candidate generation}
+\label{sssec:candidate_generation}
+
+Two candidate-generation methods are implemented. Both start from the same
+endpoint computation, but they use it differently. Yen's method keeps one
+detour source $s$ and enumerates the $k$ best loopless paths from $s$ to
+$t$, all of its plans have depth $d=0$. The upstream method starts
+from the same effective source, then searches backwards up to
+$d_{\max}$ hops. Each upstream node becomes a possible plan origin and the
+shortest path from that origin to $t$ is retained if it exists. Yen's method
+is the default in the end-to-end pipeline. The upstream method is used when
+the experiment explicitly needs detours that begin before the closure point.
+
+\paragraph{Yen's $k$-shortest loopless paths.}
+\label{par:yen_dpm}
+
+With source $s$, target $t$ and blocked set $B$ fixed, the first method
+calls Yen's $k$-shortest loopless paths algorithm \cite{yen_algorithm} to
+enumerate up to $k$ alternative routes from $s$ to $t$ that avoid every
+edge in $B$.
+
+As described in \textbf{Algorithm \ref{alg:yen}}, 
+Yen's algorithm extends Dijkstra's shortest-path search by iteratively
+generating \emph{spur paths}. Let $P_1$ be the shortest path returned by
+Dijkstra. At each subsequent iteration $i$, the algorithm considers every
+prefix of the previously accepted path $P_{i-1}$ as a potential root
+segment. For each root, it temporarily blocks the outgoing arc that was
+used by any already-accepted path sharing that root, then runs Dijkstra
+from the spur node (the last node of the root) to $t$. The resulting
+spur path is concatenated with the root to form a complete candidate.
+All candidates are stored in a min-heap keyed by total cost and the
+minimum is promoted to $P_i$. A global signature set prevents the same
+edge sequence from appearing twice. Heap entries carry a monotonically
+increasing tie-breaking counter, so that two paths with identical cost
+are ordered by insertion time rather than by a potentially fragile
+lexicographic comparison of node lists.
+
+\begin{algorithm}[htbp]
+\caption{\textsc{YenKShortestPaths} (high-level idea)}\label{alg:yen}
+\begin{algorithmic}[1]
+\Require graph $G$, source $s$, target $t$, integer $k \geq 1$, blocked set $B$
+\Ensure list $\mathcal{P}$ of up to $k$ diverse shortest paths from $s$ to $t$ avoiding $B$
+\State $P_1 \leftarrow$ shortest path from $s$ to $t$ avoiding $B$
+\State $\mathcal{P} \leftarrow [P_1]$
+\For{$i \leftarrow 2$ \textbf{to} $k$}
+  \State \textbf{candidates} $\leftarrow \varnothing$
+  \For{each prefix of the previously accepted path $P_{i-1}$}
+    \State temporarily block the next arc taken by any already-accepted path that shares this prefix
+    \State find the shortest path from the prefix's endpoint to $t$
+    \State store \textit{prefix} $+$ \textit{new path} as a candidate
+  \EndFor
+  \State pick the cheapest unseen candidate as $P_i$ and append it to $\mathcal{P}$
+  \State \textbf{stop} if no candidate remains
+\EndFor
+\State \Return $\mathcal{P}$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Upstream search.}
+\label{par:upstream}
+
+The upstream method is based on the fact that vehicles approaching a closure
+may arrive from several directions, not from one junction only. A reverse BFS
+from $s$ records every reachable upstream node $u$ and its depth $d(u)$ up to
+$d_{\max}$. The source $s$ itself is kept at depth $0$, so the method still
+contains a fallback. For each discovered origin, Dijkstra is run
+from that origin to $t$ while avoiding the blocked set $B$.
+
+The returned plans are sorted by depth descending and then by total length.
+This ordering is used later by the route rewriter: it tries the most upstream
+applicable plan first, then falls back to shallower ones.
+
+\begin{algorithm}[H]
+\caption{\textsc{UpstreamDeviationPlans} (high-level idea)}\label{alg:upstream}
+\begin{algorithmic}[1]
+\Require graph $G$, endpoints $s$, $t$, blocked set $B$, max depth $d_{\max}$
+\Ensure deviation plans sorted by depth (desc), then length (asc)
+\State reverse-BFS from $s$ up to $d_{\max}$ hops, tagging each reachable node $u$ with its depth $d(u)$
+\State $\mathcal{P} \leftarrow [\,]$
+\For{each upstream origin $u$ found (including $s$ at depth $0$)}
+  \State compute the shortest path $\pi$ from $u$ to $t$ avoiding $B$
+  \If{$\pi$ exists and is not a duplicate}
+    \State save $\mathcal{D}(\pi,\, d(u))$ as a candidate plan in $\mathcal{P}$
+  \EndIf
+\EndFor
+\State sort $\mathcal{P}$: deeper origins first, shorter paths first within each depth
+\State \Return $\mathcal{P}$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent where $\mathcal{D}(\pi, d)$ denotes the deviation plan wrapping
+path $\pi$ with BFS depth $d$.
+
+\textbf{Figure~\ref{fig:candidate-gen}} illustrates the two methods on the same toy
+network: nodes $s$ and $t$ are the detour endpoints, $p$ and $q$ are
+intermediate junctions and the direct edge $s\to t$ belongs to the blocked
+set $B$.
+
+\begin{figure}[htbp]
+\centering
+%%------------------------------------------------------------
+%% (a) Yen's k-shortest paths
+%%------------------------------------------------------------
+\begin{minipage}[t]{0.44\linewidth}
+\centering
+\begin{tikzpicture}[
+  junc/.style={circle, draw=gray!60, fill=gray!12, thick,
+               minimum size=8mm, inner sep=0pt, font=\small\sffamily},
+  endpt/.style={junc, draw=blue!55!black, fill=blue!12},
+  cl/.style={-{Stealth[length=6pt]}, red!68, dashed, line width=1.2pt},
+  base/.style={-{Stealth[length=5pt]}, gray!42, thin},
+  pa/.style={-{Stealth[length=6pt]}, blue!65, line width=1.6pt},
+  pb/.style={-{Stealth[length=6pt]}, orange!85!black, line width=1.6pt},
+]
+  \node[endpt] (s) at (0,0)     {$s$};
+  \node[junc]  (p) at (2.0,1.3) {$p$};
+  \node[junc]  (q) at (2.0,-1.3){$q$};
+  \node[endpt] (t) at (4.0,0)   {$t$};
+
+  %% base network
+  \draw[base] (s) -- (p);\quad\draw[base] (p) -- (t);
+  \draw[base] (s) -- (q);\quad\draw[base] (q) -- (t);
+
+  %% blocked direct edge
+  \draw[cl] (s) -- node[above, font=\scriptsize, red!68]{blocked} (t);
+
+  %% P1: s -> p -> t
+  \draw[pa] (s) to[bend left=18] (p);
+  \draw[pa] (p) to[bend left=18] (t);
+
+  %% P2: s -> q -> t
+  \draw[pb] (s) to[bend right=18] (q);
+  \draw[pb] (q) to[bend right=18] (t);
+
+  %% inline legend
+  \draw[pa, line width=1.2pt] (-0.1,-2.1)--(0.6,-2.1)
+    node[right, font=\scriptsize]{$P_1\colon s\!\to\!p\!\to\!t$};
+  \draw[pb, line width=1.2pt] (-0.1,-2.55)--(0.6,-2.55)
+    node[right, font=\scriptsize]{$P_2\colon s\!\to\!q\!\to\!t$};
+  \draw[cl,  line width=1.2pt] (-0.1,-3.0) --(0.6,-3.0)
+    node[right, font=\scriptsize]{blocked ($B$)};
+\end{tikzpicture}
+
+\smallskip\small (a)~Yen's $k$-shortest paths ($k=2$)
+\end{minipage}%
+\hfill
+%%------------------------------------------------------------
+%% (b) Upstream multi-origin
+%%------------------------------------------------------------
+\begin{minipage}[t]{0.52\linewidth}
+\centering
+\begin{tikzpicture}[
+  junc/.style={circle, draw=gray!60, fill=gray!12, thick,
+               minimum size=8mm, inner sep=0pt, font=\small\sffamily},
+  endpt/.style={junc, draw=blue!55!black, fill=blue!12},
+  upst/.style={junc, draw=teal!60!black, fill=teal!10},
+  cl/.style={-{Stealth[length=6pt]}, red!68, dashed, line width=1.2pt},
+  base/.style={-{Stealth[length=5pt]}, gray!42, thin},
+  pa/.style={-{Stealth[length=6pt]}, blue!65, line width=1.6pt},
+  pb/.style={-{Stealth[length=6pt]}, orange!85!black, line width=1.6pt},
+]
+  \node[endpt] (s)  at (0,0)      {$s$};
+  \node[junc]  (p)  at (2.0,1.3)  {$p$};
+  \node[junc]  (q)  at (2.0,-1.3) {$q$};
+  \node[endpt] (t)  at (4.0,0)    {$t$};
+  \node[upst]  (u1) at (-1.8,0)   {$u_1$};
+  \node[upst]  (u2) at (-1.8,-1.3){$u_2$};
+
+  %% base network
+  \draw[base] (s)  -- (p);\quad\draw[base] (p) -- (t);
+  \draw[base] (s)  -- (q);\quad\draw[base] (q) -- (t);
+  \draw[base] (u1) -- (s);   %% u1 -> s
+  \draw[base] (u2) -- (s);   %% u2 -> s (exists, not used by u2's path)
+  \draw[base] (u2) to[bend right=12] (q); %% shortcut u2 -> q
+
+  %% blocked direct edge
+  \draw[cl] (s) -- node[above, font=\scriptsize, red!68]{blocked} (t);
+
+  %% BFS boundary
+  \begin{scope}[on background layer]
+    \draw[teal!45, dashed, rounded corners=5pt, line width=0.8pt]
+      (-2.45,-1.9) rectangle (-1.15,0.55);
+  \end{scope}
+  \node[font=\scriptsize\itshape, teal!60!black] at (-1.8,0.9)
+    {upstream$(s,\,1)$};
+
+  %% path from u1: u1 -> s -> p -> t
+  \draw[pa] (u1) -- (s);
+  \draw[pa] (s)  to[bend left=18]  (p);
+  \draw[pa] (p)  to[bend left=18]  (t);
+
+  %% path from u2: u2 -> q -> t  (bypasses s)
+  \draw[pb] (u2) to[bend right=20] (q);
+  \draw[pb] (q)  to[bend right=18] (t);
+
+  %% inline legend
+  \draw[pa, line width=1.2pt] (-0.1,-2.1)--(0.6,-2.1)
+    node[right, font=\scriptsize]{$u_1\colon u_1\!\to\!s\!\to\!p\!\to\!t$};
+  \draw[pb, line width=1.2pt] (-0.1,-2.55)--(0.6,-2.55)
+    node[right, font=\scriptsize]{$u_2\colon u_2\!\to\!q\!\to\!t$ \emph{(bypasses $s$)}};
+  \draw[cl,  line width=1.2pt] (-0.1,-3.0) --(0.6,-3.0)
+    node[right, font=\scriptsize]{blocked ($B$)};
+\end{tikzpicture}
+
+\smallskip\small (b)~Upstream multi-origin ($d=1$)
+\end{minipage}
+
+\caption{Comparison of the two candidate generation methods on a toy
+network. In both cases the edge $s\!\to\!t$ is blocked (red dashed).
+\textit{(a)}~Yen's algorithm produces $k=2$ loopless paths, both originating
+from $s$: $P_1$ takes the upper corridor through $p$ and $P_2$ the lower
+corridor through $q$.
+\textit{(b)}~The upstream BFS at depth $d=1$ identifies two origins
+$\{u_1, u_2\}$ (teal). $u_1$ routes through $s$ and then takes the upper
+corridor, while $u_2$ holds a direct connection to $q$, so its optimal
+path bypasses $s$ entirely, a candidate that Yen's method, being anchored
+at $s$, would never generate.}
+\label{fig:candidate-gen}
+\end{figure}
+
+Each accepted path is wrapped in a \texttt{DeviationPlan} object. The
+object records the plan identifier, its rank within the $k$-shortest
+list, the ordered sequences of junction and edge identifiers and the
+total geometric length in meters (computed by summing the
+\texttt{length\_m} attribute of every edge on the path).
+
+No post-filtering is applied at this point. Plans are not removed because of a
+maximum detour-length ratio and near-duplicates are not removed by edge-set
+overlap. This keeps the planning stage simple and avoids discarding a route
+before it has been tested in simulation. Two routes can share most of their
+edges and still behave differently if they diverge near a bottleneck or pass
+through a different sequence of signalised intersections. The Monte Carlo
+evaluation is used later to separate useful candidates from poor ones.
+
+\subsubsection{Route rewriting}
+
+Detours are applied by rewriting route files before SUMO starts, rather than
+by using SUMO's dynamic
+\emph{rerouters}\footnote{\url{https://sumo.dlr.de/docs/Simulation/Rerouter.html}}.
+This keeps the experiment static and inspectable: \texttt{duarouter} already
+provides route-choice variation through randomized edge weights and the final
+route file can be checked before the simulation.
+
+After each Monte Carlo call to \texttt{duarouter}, the rewriter creates one
+\texttt{routes\_\{plan\_id\}.xml} file per candidate plan. Only vehicles that
+traverse a closed edge are modified. For each affected vehicle, candidate plans
+are tried from deepest to shallowest and the first plan whose origin appears
+upstream of the closure in that vehicle's route is selected
+(Algorithm~\ref{alg:rewrite}). Yen plans have only the evaluated depth-0
+candidate, upstream plans also carry the depth-0 fallback.
+
+The selected plan $\mathcal{D}^*$ is inserted by replacing the route segment
+from $\mathcal{D}^*.s$ to the last closed edge with the detour edge sequence
+$\mathcal{D}^*.P$. This is a splice in the vehicle's edge list, illustrated
+in Figure~\ref{fig:route-rewrite}.
+
+\begin{algorithm}[htbp]
+\caption{\textsc{DepthAwareRewrite} (high-level idea)}\label{alg:rewrite}
+\begin{algorithmic}[1]
+\Require vehicle route $R$, candidate plans $\mathcal{D}$ sorted by depth (desc),
+         closed edge set $B_c$
+\Ensure rewritten route $R'$
+\If{$R$ does not traverse any edge in $B_c$}
+  \State \Return $R$\hfill\textit{// route unaffected by the closure}
+\EndIf
+\State pick the deepest plan $\mathcal{D}^*$ whose origin $s$ lies on $R$
+       upstream of the closure
+       \hfill\textit{// shallower plans provide deterministic fallback}
+\State splice $\mathcal{D}^*.P$ into $R$, replacing the segment that runs
+       from the edge departing $\mathcal{D}^*.s$ up to the last closed edge
+\State \Return the spliced route
+\end{algorithmic}
+\end{algorithm}
+
+The baseline route file is left unchanged, each candidate is evaluated through
+its own rewritten copy.
+
+\begin{figure}[htbp]
+  \centering
+
+  \begin{tikzpicture}[
+    ebox/.style={
+      draw,
+      rounded corners=3pt,
+      fill=gray!10,
+      thick,
+      minimum width=1.05cm,
+      minimum height=0.65cm,
+      align=center,
+      font=\scriptsize\ttfamily
+    },
+    cbox/.style={
+      draw=red!65!black,
+      fill=red!12,
+      rounded corners=3pt,
+      thick,
+      minimum width=1.05cm,
+      minimum height=0.65cm,
+      align=center,
+      font=\scriptsize\ttfamily
+    },
+    dbox/.style={
+      draw=teal!65!black,
+      fill=teal!12,
+      rounded corners=3pt,
+      thick,
+      minimum width=1.05cm,
+      minimum height=0.65cm,
+      align=center,
+      font=\scriptsize\ttfamily
+    },
+    arr/.style={-{Stealth[length=5pt]}, thick},
+    node distance=0.22cm
+  ]
+
+    % ---- Original route (top row) ----
+    \node[ebox] (e1) {$e_1$};
+    \node[ebox, right=of e1] (e2) {$e_2$};
+    \node[ebox, right=of e2] (e3) {$e_3$};
+    \node[cbox, right=of e3] (ec) {$e_c$};
+    \node[ebox, right=of ec] (e4) {$e_4$};
+    \node[ebox, right=of e4] (e5) {$e_5$};
+
+    \node[
+      left=0.55cm of e1,
+      font=\small,
+      align=right,
+      text width=3cm
+    ] {Original route:};
+
+    \draw[arr] (e1) -- (e2);
+    \draw[arr] (e2) -- (e3);
+    \draw[arr, red!50] (e3) -- (ec);
+    \draw[arr, red!50] (ec) -- (e4);
+    \draw[arr] (e4) -- (e5);
+
+    % Closed-edge annotation
+    \draw[
+      red!60,
+      decorate,
+      decoration={brace, amplitude=5pt, raise=3pt}
+    ]
+      (ec.north west) -- (ec.north east)
+      node[midway, above=8pt, font=\scriptsize, red!75!black]{closed};
+
+    % ---- Central arrow ----
+    \node[font=\small, align=center] (lbl) at (5.8, -1.1)
+      {\textsc{ApplyDetour}($\mathcal{D}^*$)};
+
+    \draw[arr, blue!55, thick] (3.8, -0.42) -- (3.8, -1.75);
+
+    % ---- Rewritten route (bottom row) ----
+    \node[ebox, below=2cm of e1] (f1) {$e_1$};
+    \node[ebox, right=of f1] (f2) {$e_2$};
+    \node[ebox, right=of f2] (f3) {$e_3$};
+    \node[dbox, right=of f3] (d1) {$d_1$};
+    \node[dbox, right=of d1] (d2) {$d_2$};
+    \node[ebox, right=of d2] (f4) {$e_4$};
+    \node[ebox, right=of f4] (f5) {$e_5$};
+
+    \node[
+      left=0.55cm of f1,
+      font=\small,
+      align=right,
+      text width=3cm
+    ] {Rewritten route:};
+
+    \draw[arr] (f1) -- (f2);
+    \draw[arr] (f2) -- (f3);
+    \draw[arr, teal!65!black] (f3) -- (d1);
+    \draw[arr, teal!65!black] (d1) -- (d2);
+    \draw[arr, teal!65!black] (d2) -- (f4);
+    \draw[arr] (f4) -- (f5);
+
+    % Detour annotation
+    \draw[
+      teal!65!black,
+      decorate,
+      decoration={brace, amplitude=5pt, raise=3pt}
+    ]
+      (d1.north west) -- (d2.north east)
+      node[midway, above=8pt, font=\scriptsize, teal!70!black]
+      {detour $\mathcal{D}^*\!$};
+
+  \end{tikzpicture}
+
+  \caption{Route rewriting for one affected vehicle. The closed edge $e_c$
+  (red) is replaced by the selected detour sequence $(d_1, d_2)$ (teal), while
+  the unaffected prefix and suffix are preserved.}
+
+  \label{fig:route-rewrite}
+\end{figure}

@@ -1,0 +1,76 @@
+\subsection{System overview and pipeline}
+The methodology follows the same order as the implemented workflow. The first
+step generates a synthetic, network-aware demand from the SUMO road network
+and the TAZ layer. This demand is written as \texttt{trips.xml}: every trip
+has a departure time, an origin edge and a destination edge, while the full
+path is left open. The closure is then translated into candidate deviation
+plans. In the Monte Carlo stage, the same trip demand is routed repeatedly
+with \texttt{duarouter}\footnote{\href{https://sumo.dlr.de/docs/CLI.html}{https://sumo.dlr.de/docs/CLI.html}}, using randomized edge weights, before each deviation
+plan is applied and simulated in SUMO. The last step compares the plans using
+paired statistics and a multi-criteria decision rule. The pipeline is illustrated in
+\textbf{Figure \ref{fig:pipeline}}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Module & Main role & Main outputs \\
+\midrule
+\texttt{scenario\_generator} & Generates synthetic OD demand and unrouted trip records & \texttt{trips.xml}, OD matrices \\
+\texttt{deviation\_plan\_maker} & Converts the network into a graph and calculates the deviation plan(s) & JSON of candidate deviation plans \\
+\texttt{monte\_carlo\_simulation} & Re-routes trip demand and simulates baseline and detour conditions over multiple runs & \texttt{run\_\#} folders, \texttt{summary.json} \\
+\texttt{evaluator} & Paired statistical analysis and multi-criteria ranking & \texttt{evaluation.json}, \texttt{evaluation.md} \\
+\bottomrule
+\end{tabularx}
+\caption{Functional organization of the pipeline}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  module/.style={
+    draw, rounded corners=5pt, fill=blue!7, thick,
+    minimum width=5.8cm, minimum height=1.0cm,
+    align=center, font=\small\ttfamily
+  },
+  artifact/.style={
+    draw, rounded corners=3pt, fill=gray!8,
+    minimum width=4.6cm, minimum height=0.75cm,
+    align=center, font=\scriptsize\ttfamily
+  },
+  inputbox/.style={
+    draw, dashed, rounded corners=3pt, fill=orange!7,
+    minimum width=5.8cm, minimum height=0.85cm,
+    align=center, font=\small
+  },
+  arr/.style={-{Stealth[length=6pt]}, thick},
+  side/.style={-{Stealth[length=5pt]}, thick, gray!70},
+  node distance=0.75cm
+]
+  \node[inputbox] (inp)
+    {\texttt{.net.xml} \enspace \texttt{taz.xml} \enspace \texttt{config.toml}};
+
+  \node[module, below=0.85cm of inp]  (sg)  {scenario\_generator};
+  \node[module, below=0.75cm of sg]   (dpm) {deviation\_plan\_maker};
+  \node[module, below=0.75cm of dpm]  (mcs) {monte\_carlo\_simulation};
+  \node[module, below=0.75cm of mcs]  (ev)  {evaluator};
+
+  \node[artifact, right=1.6cm of sg]  (sg_out)  {\texttt{trips.xml}, OD matrices};
+  \node[artifact, right=1.6cm of dpm] (dpm_out) {\texttt{plans.json}};
+  \node[artifact, right=1.6cm of mcs] (mcs_out) {\texttt{run\_\#/}, \texttt{summary.json}};
+  \node[artifact, right=1.6cm of ev]  (ev_out)  {\texttt{evaluation.json}};
+
+  \draw[arr] (inp) -- (sg);
+  \draw[arr] (sg)  -- (dpm);
+  \draw[arr] (dpm) -- (mcs);
+  \draw[arr] (mcs) -- (ev);
+
+  \draw[side] (sg)  -- (sg_out);
+  \draw[side] (dpm) -- (dpm_out);
+  \draw[side] (mcs) -- (mcs_out);
+  \draw[side] (ev)  -- (ev_out);
+\end{tikzpicture}
+\caption{Four-module pipeline. Inputs (dashed box) flow top-to-bottom through the four modules. The scenario generator writes unrouted trips; explicit route files are produced later inside each Monte Carlo iteration by \texttt{duarouter}.}
+\label{fig:pipeline}
+\end{figure}
+

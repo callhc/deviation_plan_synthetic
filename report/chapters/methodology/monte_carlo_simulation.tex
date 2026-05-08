@@ -1,0 +1,260 @@
+\subsection{Monte Carlo Simulation}
+\label{subsec:monte_carlo}
+
+The Monte Carlo stage turns the fixed demand and the candidate detours into
+repeated SUMO observations. In this stage, the demand stays fixed while the
+route assignment changes. The scenario generator gives the simulation an
+unrouted \texttt{trips.xml} file and each Monte Carlo iteration routes that
+same trip set again with \texttt{duarouter}, a different seed and randomized
+edge weights.
+
+\subsubsection{Experimental design}
+\label{sssec:mc_design}
+
+The experiment uses a \textbf{paired stochastic-routing design}. The trip
+population is fixed, while the route realization changes from run to run. Let
+$\mathcal{T}$ be the \texttt{trips.xml} file produced by the scenario
+generator. For Monte Carlo iteration $r$, the simulation first computes the
+baseline route file
+\begin{equation}
+  \mathcal{R}_0^{(r)}
+  =
+  \textsc{DuaRouter}\bigl(\mathcal{T},\,G,\,r,\,\alpha\bigr),
+  \label{eq:duarouter_run}
+\end{equation}
+where $G$ is the SUMO network and $\alpha$ is the upper bound passed to
+\texttt{--weights.random-factor}. With this option, \texttt{duarouter}
+perturbs edge costs by drawing multipliers in $[1,\alpha]$. Different
+iterations can produce different paths for the same trip endpoints.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  vx/.style={draw, circle, fill=blue!10, thick, minimum size=7mm,
+             font=\small\bfseries, inner sep=0pt},
+  sel/.style={draw, very thick, blue!70!black,
+              -{Stealth[length=6pt,width=5pt]}},
+  unsel/.style={draw, thick, gray!60,
+                -{Stealth[length=6pt,width=5pt]}},
+  wlbl/.style={font=\footnotesize, fill=white, inner sep=1pt},
+  ttl/.style={font=\small\itshape}
+]
+%--- LEFT: no perturbation ------------------------------------------------
+\begin{scope}
+  \node[vx] (A)  at (0, 0) {$A$};
+  \node[vx] (B)  at (2, 1) {$B$};
+  \node[vx] (C)  at (2,-1) {$C$};
+  \node[vx] (D)  at (4, 0) {$D$};
+
+  \draw[sel]   (A) -- node[wlbl,above left]  {2} (B);
+  \draw[sel]   (B) -- node[wlbl,above right] {2} (D);
+  \draw[unsel] (A) -- node[wlbl,below left]  {3} (C);
+  \draw[unsel] (C) -- node[wlbl,below right] {3} (D);
+
+  \node[ttl] at (2,-2.1) {No perturbation ($\times\,1$)};
+\end{scope}
+%--- RIGHT: with perturbation ---------------------------------------------
+\begin{scope}[xshift=6.4cm]
+  \node[vx] (A2) at (0, 0) {$A$};
+  \node[vx] (B2) at (2, 1) {$B$};
+  \node[vx] (C2) at (2,-1) {$C$};
+  \node[vx] (D2) at (4, 0) {$D$};
+
+  \draw[unsel] (A2) -- node[wlbl,above left]  {\textcolor{red!70!black}{3.8}} (B2);
+  \draw[unsel] (B2) -- node[wlbl,above right] {\textcolor{red!70!black}{3.6}} (D2);
+  \draw[sel]   (A2) -- node[wlbl,below left]  {\textcolor{red!70!black}{3.3}} (C2);
+  \draw[sel]   (C2) -- node[wlbl,below right] {\textcolor{red!70!black}{3.0}} (D2);
+
+  \node[ttl] at (2,-2.1) {With perturbation ($\alpha = 2$)};
+\end{scope}
+\end{tikzpicture}
+\caption{Effect of \texttt{--weights.random-factor} on route choice. Both
+  graphs share the same network and origin--destination pair $A\!\to\!D$.
+  \textbf{Left}: nominal edge costs, the router selects $A\!\to\!B\!\to\!D$
+  (cost~4) over $A\!\to\!C\!\to\!D$ (cost~6). \textbf{Right}: each cost is
+  multiplied by a random factor drawn from $[1,\alpha]$, the top path becomes
+  costlier (7.4) than the bottom path (6.3), so the router now chooses
+  $A\!\to\!C\!\to\!D$. Across Monte Carlo iterations, different draws of
+  these multipliers yield different route realizations for the same trip set.}
+\label{fig:weights-random-factor}
+\end{figure}
+
+For every candidate deviation plan $\mathcal{D}_k$, the deterministic rewriter
+is then applied to that same baseline route file. The baseline and all plan conditions are paired within the same
+run: they share the same trip set, the same route realization before applying
+the closure treatment and the same SUMO seed.
+
+For each iteration $r$, the raw time-loss difference
+\begin{equation}
+  \delta_k^{(r)} \;=\; D_k^{(r)} \;-\; D_0^{(r)}
+  \label{eq:paired_delta}
+\end{equation}
+measures the effect of plan $\mathcal{D}_k$ relative to the no-closure
+baseline under the same route-choice and SUMO random seed. The estimator
+\begin{equation}
+  \bar{\delta}_k = \frac{1}{R}\sum_{r=1}^{R}\delta_k^{(r)}
+\end{equation}
+compares plans after much of the run-level noise shared by the baseline and
+plan conditions has been removed.
+
+\subsubsection{Per-run routing and detour application}
+\label{sssec:mc_precomp}
+
+There is no plan-specific route pre-computation outside the Monte Carlo loop.
+The only fixed demand input is \texttt{trips.xml}. In each iteration,
+\texttt{duarouter} writes \texttt{run\_\#/routes.xml}. This is the baseline
+route realization for that seed. The route rewriter then creates the
+\texttt{routes\_\{plan\_id\}.xml} files in the same run directory.
+
+After each plan file is written, the code checks that the closed edge no
+longer appears in any rewritten route. It also compares the baseline and plan
+files vehicle by vehicle to count how many routes changed. These statistics
+are stored per run, since the affected vehicles can change when
+\texttt{duarouter} produces a different baseline route set.
+
+\subsubsection{Iteration structure}
+\label{sssec:mc_iteration}
+
+Each Monte Carlo iteration consists of routing, deterministic route rewriting,
+SUMO execution and metric extraction. Algorithm~\ref{alg:mc_iter} states the
+procedure formally, Figure~\ref{fig:mc-workflow} summarizes the workflow.
+
+\begin{algorithm}[htbp]
+\caption{\textsc{MonteCarloIteration}}\label{alg:mc_iter}
+\begin{algorithmic}[1]
+\Require network file $G$,
+         trip file $\mathcal{T}$,
+         closed edge $e_c$,
+         candidate plans $\{\mathcal{D}_1, \ldots, \mathcal{D}_K\}$,
+         edge-endpoint map $\mathcal{E}$,
+         run index $r$,
+         simulation window $[b,\, e]$,
+         random factor $\alpha$
+\Ensure  per-condition metric dictionary for this iteration
+\State $\mathcal{R}_0^{(r)} \leftarrow
+       \textsc{DuaRouter}(\mathcal{T},G,r,\alpha)$
+       \Comment{baseline route realization}
+\State $M_0 \leftarrow \textsc{RunSUMO}(G,\mathcal{R}_0^{(r)},r,b,e)$
+\State $\text{results}[\,\text{baseline}\,] \;\leftarrow\; M_0$
+\For{$k \leftarrow 1$ \textbf{to} $K$}
+  \State $\mathcal{R}_k^{(r)} \leftarrow
+         \textsc{ApplyDetourToRoutes}(\mathcal{R}_0^{(r)},\mathcal{D}_k,e_c,\mathcal{E})$
+  \State validate that $\mathcal{R}_k^{(r)}$ contains no closed edge $e_c$
+  \State $s_k^{(r)} \leftarrow
+         \textsc{CountRerouted}(\mathcal{R}_0^{(r)},\mathcal{R}_k^{(r)})$
+  \State $M_k \leftarrow \textsc{RunSUMO}(G,\mathcal{R}_k^{(r)},r,b,e)$
+  \State $\text{results}[\mathcal{D}_k] \;\leftarrow\; M_k \;\cup\; s_k^{(r)}$
+\EndFor
+\State \Return results
+\end{algorithmic}
+\end{algorithm}
+
+\textsc{DuaRouter} invokes \texttt{duarouter} with the fixed trip file,
+\texttt{--weights.random-factor} and the run seed. \textsc{RunSUMO} writes a
+minimal SUMO configuration file that specifies the network, the route file,
+the simulation window $[b, e]$ and the same seed $r$, invokes \texttt{sumo}
+as a subprocess and parses the resulting \texttt{tripinfo.xml} output into
+the metrics of Section~\ref{sssec:mc_metrics}. Each condition runs in its own
+subdirectory (\texttt{run\_r/baseline/}, \texttt{run\_r/plan\_k/}), keeping
+outputs isolated.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  data/.style={draw, dashed, rounded corners=4pt, fill=orange!7, thick,
+    minimum width=9.4cm, text width=8.8cm, minimum height=0.70cm,
+    align=center, font=\small},
+  stage/.style={draw, rounded corners=4pt, fill=blue!7, thick,
+    minimum width=9.4cm, text width=8.8cm, minimum height=0.78cm,
+    align=center, font=\small},
+  result/.style={draw, rounded corners=4pt, fill=teal!10, thick,
+    minimum width=9.4cm, text width=8.8cm, minimum height=0.70cm,
+    align=center, font=\small},
+  arr/.style={-{Stealth[length=6pt]}, thick},
+  runlabel/.style={font=\small\bfseries},
+  node distance=0.52cm
+]
+  \node[data] (inputs)
+    {fixed inputs: network $G$, trip demand $\mathcal{T}$ and candidate plans $\{\mathcal{D}_k\}$};
+
+  \node[stage, below=1.25cm of inputs] (route)
+    {1. \textsc{DuaRouter}: create one baseline route realization
+     $\mathcal{R}_0^{(r)}$};
+  \node[stage, below=of route] (rewrite)
+    {2. route rewriting: apply every plan to the same $\mathcal{R}_0^{(r)}$};
+  \node[stage, below=of rewrite] (sim)
+    {3. SUMO: simulate baseline and plan routes with the same seed $r$};
+
+  \begin{scope}[on background layer]
+    \node[draw, rounded corners=6pt, thick, fill=gray!4,
+          fit=(route)(rewrite)(sim), inner xsep=0.28cm, inner ysep=0.55cm] (runbox) {};
+  \end{scope}
+  \node[runlabel, above left=0.10cm and -0.05cm of runbox.north west,
+        anchor=south west] {repeat for $r=1,\ldots,R$};
+
+  \node[result, below=0.85cm of sim] (aggregate)
+    {aggregate paired differences: $\delta_k^{(r)}=D_k^{(r)}-D_0^{(r)}$};
+
+  \draw[arr] (inputs) -- (route);
+  \draw[arr] (route) -- (rewrite);
+  \draw[arr] (rewrite) -- (sim);
+  \draw[arr] (runbox.south) -- (aggregate);
+\end{tikzpicture}
+\caption{Monte Carlo protocol. The demand and candidate plans are
+fixed, each seed produces one baseline route realization, applies all detours
+to that realization and simulates paired baseline-plan conditions.}
+\label{fig:mc-workflow}
+\end{figure}
+
+\subsubsection{Performance metrics}
+\label{sssec:mc_metrics}
+
+Each \texttt{tripinfo.xml} file is parsed into a metric vector $M_c^{(r)}$ for
+condition $c$ and run $r$. SUMO is configured with
+\texttt{tripinfo-output.write-unfinished}, so completed trips can be separated
+from unfinished or vaporized records. Aggregate performance is computed only
+on completed trips. The unfinished count is kept as a diagnostic.
+
+\begin{itemize}
+  \item \textbf{Total time-loss delay} $D$ (vehicle-hours): the sum of
+    SUMO \texttt{timeLoss} over completed trips, converted from seconds
+    to hours,
+    \begin{equation}
+      D \;=\; \frac{1}{3600} \sum_{v \in \mathcal{V}_{\mathrm{done}}} \lambda_v,
+      \label{eq:mc_delay}
+    \end{equation}
+    where $\lambda_v$ is the vehicle's SUMO \texttt{timeLoss}. This is the
+    excess travel time relative to SUMO's ideal traversal of the driven route,
+    so it captures both stopped waiting and moving slowdowns.
+
+  \item \textbf{Mean travel time} $\bar{\tau}$ (minutes): the arithmetic mean
+    of completed trip durations,
+    \begin{equation}
+      \bar{\tau} \;=\;
+      \frac{1}{60\,|\mathcal{V}_{\mathrm{done}}|}
+      \sum_{v \in \mathcal{V}_{\mathrm{done}}} \tau_v,
+      \label{eq:mc_tt}
+    \end{equation}
+    where $\tau_v$ is the door-to-door duration of trip $v$ in seconds.
+
+  \item \textbf{Completed and unfinished trips}: the number of vehicles that
+    arrived within the simulation window and the number of records that did
+    not. A high unfinished count flags a simulation window, demand, or
+    topology problem that should be inspected before interpreting a plan.
+
+  \item \textbf{Rerouted vehicles}: for each plan and run, the number and
+    percentage of vehicles whose route sequence differs from the run's
+    baseline route file. This value is computed after \texttt{duarouter}, so
+    it can vary across Monte Carlo iterations.
+\end{itemize}
+
+For plan comparison, the evaluator computes paired differences such as
+$\delta_k^{(r)}$ in Equation~\eqref{eq:paired_delta} run by run. These raw
+paired observations are preserved in the per-run \texttt{results.json} files
+and are not replaced by only top-level averages.
+
+\subsubsection{Convergence and number of runs}
+\label{sssec:mc_convergence}
+The number of runs is fixed by the user. If more
+precision is needed, the same output directory can be extended using a 
+resume mechanism, which continues from the next missing run identifier.
