@@ -1,1 +1,316 @@
 \section{Results}
+
+This chapter gives a first visual readout of the complete pipeline on the
+\emph{city\_tiny} test scenario. The objective is not yet to
+claim calibrated real-world performance, but to show that the implemented
+workflow produces coherent demand, route alternatives, Monte Carlo outputs and
+a reproducible plan ranking.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=0.9\textwidth]{../visualisations/results_city_tiny_network.pdf}
+  \caption{Base \texttt{city\_tiny} synthetic network used for the draft
+  experiment. TAZ boundaries are shown in light grey and the road graph is
+  drawn without closures or detours to give a neutral view of the study area.}
+  \label{fig:results_city_tiny_network}
+\end{figure}
+
+\subsection{Experimental setup}
+The scenario generator produced 15,200 vehicle definitions from 24
+hourly OD matrices. The closure is edge \texttt{172}, with two manually defined candidate
+deviation plans. The manually defined plans were evaluated over 30 Monte Carlo runs, while the
+Yen and upstream batches were evaluated over 10 runs in this draft experiment.
+The same evaluator is applied to all plan families, but the number of
+replications differs at this draft stage.
+The \textbf{Figure
+\ref{fig:results_pipeline_overview}} illustrates the overall pipeline and the \textbf{Table
+\ref{tab:results_mc_summary}} summarises the main results for the
+manually-defined plans.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=\textwidth]{../visualisations/results_pipeline_overview.pdf}
+  \caption{Concrete result-producing pipeline for the draft experiment. The
+  same generated demand is reused across all Monte Carlo runs, variation comes
+  from stochastic route assignment before each plan-specific simulation.}
+  \label{fig:results_pipeline_overview}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Plan & Delay & $\Delta$ delay & $\Delta$ travel & Rerouted \\
+\midrule
+Baseline & 63.12 & -- & -- & -- \\
+\texttt{plan\_1} & 69.47 & 6.36 & 0.090 & 1,166.7 \\
+\texttt{plan\_2} & 71.49 & 8.37 & 0.151 & 1,166.7 \\
+\bottomrule
+\end{tabular}
+\caption{Main Monte Carlo aggregates over 30 runs. Delay and delta delay are
+in vehicle-hours, delta travel is in minutes per completed vehicle. Deltas are
+plan minus baseline, where the baseline is the unclosed-network reference.}
+\label{tab:results_mc_summary}
+\end{table}
+
+\subsection{Manually-defined plans}
+
+The test network contains 364 directed road edges, 364 lanes, 120 junctions
+and 20 Traffic Analysis Zones (TAZs), for a total of 30.82 lane-kilometres.
+\textbf{Figure \ref{fig:results_network_detours}} shows the spatial scale of
+the experiment. The closed edge sits in the central part of the network and
+both candidate plans route traffic around this local disruption.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=0.92\textwidth]{../visualisations/results_network_detours.pdf}
+  \caption{Synthetic network, TAZ grid, closed edge and the two candidate
+  detours. The grey lines are the full road network, red marks the closed
+  edge, blue and orange mark \texttt{plan\_1} and \texttt{plan\_2}.}
+  \label{fig:results_network_detours}
+\end{figure}
+
+The generated demand has the intended two-peak structure as illustrated in \textbf{Figure
+\ref{fig:results_hourly_demand}}. The largest hourly
+volume occurs at 17:00, with 1,328 departures, which is consistent with the
+configured evening-dominant profile. The daily OD matrix is also spatially
+concentrated rather than uniform: zone \texttt{2\_1} is the largest
+origin zone (1,553 trips) and the largest destination zone (1,611 trips) in
+this synthetic configuration, as suggested by \textbf{Figure \ref{fig:results_od_zone_activity}}.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=0.92\textwidth]{../visualisations/results_hourly_demand.pdf}
+  \caption{Hourly trip demand generated for the experiment. The evening peak
+  dominates the synthetic day, while off-peak periods remain lightly loaded.}
+  \label{fig:results_hourly_demand}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=0.95\textwidth]{../visualisations/results_od_zone_activity.pdf}
+  \caption{Daily OD structure and zone-level activity. The heatmap gives the
+  full daily OD matrix, while the lower panel compares each zone's generated
+  origins and destinations.}
+  \label{fig:results_od_zone_activity}
+\end{figure}
+
+The two tested alternatives differ mainly in path length and spatial spread.
+\texttt{plan\_1} uses 9 detour edges and remains closer to the closed link.
+\texttt{plan\_2} uses 12 detour edges and makes a wider diversion. In the
+simulated demand, both alternatives reroute the same average number of
+vehicles, about 1,167 vehicles per run, corresponding to 7.67\% of the daily
+demand. This makes the comparison easy to read: the difference between plans
+is driven by the replacement path, not by a different affected-vehicle count.
+
+\subsubsection{Evaluator verdict}
+The evaluator assessed both plans on three criteria aggregated over the 30
+Monte Carlo runs: network delay in vehicle-hours ($\Delta$~delay), mean added
+travel time per completed trip (in minutes), and the flow-weighted congestion
+proxy $\phi_\text{net}$. Both plans are feasible, meaning neither reduces the
+number of completed trips below the baseline.
+
+\texttt{plan\_1} Pareto-dominates \texttt{plan\_2} on every criterion:
+its mean incremental delay is $6.36$~vh against $8.37$~vh for
+\texttt{plan\_2}, the per-vehicle travel-time penalty is $+0.090$~min
+against $+0.151$~min, and the congestion proxy $\phi_\text{net}$ is $0.392$
+against $0.403$. Because \texttt{plan\_2} is Pareto-dominated, no weighting
+of the three criteria can make it the preferred choice.
+The robustness test confirms this: drawing $N=20{,}000$ weight vectors
+uniformly from the weight simplex (Dirichlet$(1,1,1)$ sampling),
+\texttt{plan\_1} ranks first in every single draw ($100\%$ frequency).
+The evaluator therefore recommends \texttt{plan\_1} as the
+best manually-defined deviation plan for this closure. The \textbf{Figure~\ref{fig:results_decision_summary}} shows a visual
+summary of the decision.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=\textwidth]{../visualisations/results_decision_summary.pdf}
+  \caption{Evaluator decision summary for the two manually-defined candidate
+  plans. \texttt{plan\_1} Pareto-dominates \texttt{plan\_2} on all three
+  criteria and is ranked first across all sampled weight vectors.}
+  \label{fig:results_decision_summary}
+\end{figure}
+
+\subsection{Yen-based plans}
+
+While the two candidate plans above were defined manually, the pipeline also
+offers an automated route-generation mode based on Yen's $k$-shortest loopless
+paths algorithm. Applied to edge~\texttt{172}, the algorithm first resolves
+the effective detour endpoints. Starting from the nominal source junction of the closed edge, the graph walks
+upstream until it finds node~\texttt{2}, the first junction with more than one
+outgoing edge. It similarly resolves the downstream target to
+node~\texttt{171}. The closed edge and any approach edges
+encountered during this endpoint walk are added to the blocked set so they
+cannot be used as shortcuts.
+
+Yen's algorithm then enumerates up to $k$ loopless paths from
+node~\texttt{2} to node~\texttt{171} with the blocked set applied. 
+The 8 paths share the same detour origin at node~\texttt{2} and differ
+only in the sequence of edges used to reach node~\texttt{171}. They are
+therefore all depth-0 plans. The two shortest paths (\texttt{yen\_01} and
+\texttt{yen\_02}) each use 8~edges and cover $0.559$~km, they are
+equal-length but traverse distinct edge sequences. Three additional
+groups of paths use 9, 10 and 11 edges, covering $0.635$--$0.643$~km,
+$0.627$~km and $0.703$~km. The longest path (\texttt{yen\_08})
+is $26\%$ longer than the two shortest ones.
+\textbf{Figure~\ref{fig:results_yen_approach}} maps the top 5 paths on the
+network alongside a bar chart of all 8 candidate lengths ranked by routing
+cost.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=\textwidth]{../visualisations/results_yen_approach.pdf}
+  \caption{Candidate deviation plans produced by Yen's $k$-shortest paths
+  algorithm for the closure of edge~\texttt{172}. Left: the top-5 paths
+  overlaid on the network, coloured by rank (darkest = shortest). Right:
+  detour length in km for all 8 candidates ranked by routing cost, labels
+  above bars indicate edge count.}
+  \label{fig:results_yen_approach}
+\end{figure}
+
+The Yen output provides a cost-ordered menu of alternatives all anchored at
+the immediate source junction of the closure. The two equal-length top paths
+offer planners a choice of parallel corridors at minimal added distance, while
+the longer paths trade extra kilometres for greater spatial distribution of
+rerouted demand.
+
+\subsubsection{Evaluator verdict}
+The evaluator assessed the 8 Yen-generated plans on the same three criteria
+as before: network delay in vehicle-hours ($\Delta$~delay), mean added travel
+time per completed trip, and the flow-weighted congestion proxy
+$\phi_\text{net}$. All Yen plans are feasible, meaning none reduces the
+number of completed trips below the baseline.
+
+The Pareto screening leaves only two efficient alternatives:
+\texttt{yen\_01} and \texttt{yen\_06}. \texttt{yen\_01} gives the lowest
+delay and travel-time penalty, with a mean incremental delay of
+$4.35$~vh and a mean added travel time of $+0.070$~min per completed trip.
+However, \texttt{yen\_06} has the lowest congestion proxy, with
+$\phi_\text{net}=0.378$ against $0.380$ for \texttt{yen\_01}. This means
+that \texttt{yen\_01} is not a strict Pareto winner: it is better on the two
+time-based criteria, while \texttt{yen\_06} is slightly better on the
+congestion criterion.
+
+The remaining six plans are Pareto-dominated. In particular,
+\texttt{yen\_01} dominates \texttt{yen\_02}, \texttt{yen\_03},
+\texttt{yen\_04}, \texttt{yen\_05}, \texttt{yen\_07} and
+\texttt{yen\_08}, so these alternatives are removed before weighted scoring.
+With equal reference weights, the additive score ranks \texttt{yen\_01}
+first. The robustness test confirms this preference but not unanimously:
+drawing $N=20{,}000$ weight vectors uniformly from the weight simplex
+(Dirichlet$(1,1,1)$ sampling), \texttt{yen\_01} ranks first in $74.95\%$
+of draws, while \texttt{yen\_06} ranks first in $25.05\%$ of draws.
+The evaluator therefore recommends \texttt{yen\_01} as the best
+Yen-generated deviation plan for this closure, while identifying
+\texttt{yen\_06} as a relevant alternative if the congestion proxy is given
+very high priority.
+
+\subsection{Upstream-based plans}
+
+The upstream method extends the depth-0 Yen logic by performing a reverse
+breadth-first search (BFS) from the closure's source node and running one
+Dijkstra query to the target node per discovered upstream origin. Each
+resulting plan is tagged with the BFS depth of its origin, indicating how many
+junctions upstream of the closure the rerouting begins. A depth-$d$ plan
+therefore intercepts traffic before it has reached the approach segment,
+which is relevant when queues propagate backwards under congested conditions.
+
+Applied to edge~\texttt{172} with a maximum BFS depth of~4, the reverse
+search discovered 17 reachable origin nodes across depths~0 through~4, each
+yielding a unique Dijkstra path to node~\texttt{171}, for a total of
+\textbf{17 upstream deviation plans}. The depth distribution is:
+1~plan at depth~0 (\texttt{upstream\_17}, the universal fallback at
+junction~\texttt{2}), 2~plans at depth~1
+(junctions~\texttt{1} and~\texttt{12}), 4~plans at depth~2
+(junctions~\texttt{6}, \texttt{8}, \texttt{22}, \texttt{28}), 4~plans
+at depth~3 (junctions~\texttt{15}, \texttt{157}, \texttt{159},
+\texttt{165}), and 6~plans at depth~4 (junctions~\texttt{34},
+\texttt{42}, \texttt{178}, \texttt{190}, \texttt{197}, \texttt{201}).
+
+Detour lengths span from $0.351$~km (\texttt{upstream\_01}, depth~4,
+4~edges, junction~\texttt{42}) to $0.794$~km (\texttt{upstream\_06},
+depth~4, 11~edges, junction~\texttt{201}).
+\textbf{Figure~\ref{fig:results_upstream_approach}} shows the plans
+colour-coded by depth.
+
+\begin{figure}[htbp]
+  \centering
+  \safeincludegraphics[width=\textwidth]{../visualisations/results_upstream_approach.pdf}
+  \caption{Candidate deviation plans produced by the upstream BFS method
+  for the closure of edge~\texttt{172}. Left: all 17 plans overlaid on the
+  network, coloured by depth (plasma scale, deeper = warmer). Dot markers
+  indicate source junctions. Right: detour length per upstream origin,
+  labelled with its BFS depth.}
+  \label{fig:results_upstream_approach}
+\end{figure}
+
+Compared with the Yen output, the upstream plans cover a much broader
+spatial footprint. All Yen paths share the single node~\texttt{2} origin. In contrast, the
+upstream set reaches back to junction~\texttt{42} at depth~4 and spans
+17 distinct interception points. Plans are passed to the route rewriter
+sorted depth-descending so the most spatially specific plan is tried first,
+falling back to shallower ones for vehicles that have already passed the
+deeper diversion points, \texttt{upstream\_17} (depth~0, junction~\texttt{2})
+serves as the guaranteed fallback for all affected vehicles.
+
+\subsubsection{Evaluator verdict}
+The evaluator assessed the 17 upstream-generated plans on the same three
+criteria: network delay in vehicle-hours ($\Delta$~delay), mean added travel
+time per completed trip, and the flow-weighted congestion proxy
+$\phi_\text{net}$. All upstream plans are feasible, meaning none reduces the
+number of completed trips below the baseline.
+
+The Pareto screening keeps six efficient alternatives:
+\texttt{upstream\_04}, \texttt{upstream\_08}, \texttt{upstream\_13},
+\texttt{upstream\_14}, \texttt{upstream\_15} and
+\texttt{upstream\_16}. Among them, \texttt{upstream\_16} gives the best
+time-based performance, with the lowest mean incremental delay
+($3.22$~vh) and the lowest mean added travel time
+($+0.058$~min per completed trip). However, it has the highest congestion
+proxy on the Pareto front, with $\phi_\text{net}=0.383$. Conversely,
+\texttt{upstream\_15} has the lowest congestion proxy
+($\phi_\text{net}=0.380$), but a higher delay and travel-time penalty.
+This creates a genuine multi-criteria trade-off rather than a single plan
+dominating all others.
+
+The remaining 11 upstream alternatives are Pareto-dominated and are removed
+before weighted scoring. With equal reference weights, the additive score
+ranks \texttt{upstream\_16} first, followed by \texttt{upstream\_14},
+\texttt{upstream\_04}, \texttt{upstream\_08}, \texttt{upstream\_15} and
+\texttt{upstream\_13}. The robustness test supports this recommendation:
+drawing $N=20{,}000$ weight vectors uniformly from the weight simplex
+(Dirichlet$(1,1,1)$ sampling), \texttt{upstream\_16} ranks first in
+$68.48\%$ of draws. The next most robust first-rank alternative is
+\texttt{upstream\_15}, with $19.22\%$, while \texttt{upstream\_04} and
+\texttt{upstream\_08} rank first in about $6\%$ of draws each. The evaluator
+therefore recommends \texttt{upstream\_16} as the best upstream-generated
+deviation plan for this closure, while noting that the final choice remains
+sensitive to how strongly the congestion proxy is weighted.
+
+\subsection{Comparison across generation strategies}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Plan & $\Delta$ delay (vh) & $\Delta$ travel (min) & $\phi_\text{net}$ \\
+\midrule
+\texttt{plan\_1} & 6.36 & 0.090 & 0.392 \\
+\texttt{yen\_01} & 4.35 & 0.070 & 0.380 \\
+\texttt{upstream\_16} & 3.22 & 0.058 & 0.383 \\
+\bottomrule
+\end{tabular}
+\caption{Best-ranked plan from each generation strategy in the draft
+experiment.}
+\label{tab:results_best_by_strategy}
+\end{table}
+
+Across the three plan families, the upstream method produces the best
+time-based result in this draft experiment. The best manual plan
+(\texttt{plan\_1}) increases delay by $6.36$~vh, the best Yen plan
+(\texttt{yen\_01}) by $4.35$~vh, and the best upstream plan
+(\texttt{upstream\_16}) by $3.22$~vh. This suggests that intercepting traffic
+further upstream can reduce the simulated impact of the closure, although the
+comparison remains preliminary because the plan families were not all evaluated
+with the same number of Monte Carlo replications.

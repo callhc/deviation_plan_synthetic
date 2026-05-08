@@ -2,7 +2,7 @@
 
 The generator emits three downstream-facing outputs:
 
-- routes.xml – SUMO vehicle definitions with inline routes.
+- trips.xml – SUMO trip definitions with depart, from and to edges.
 - out_od.xml – TAZ-level demand as SUMO tazRelation elements.
 - odmat_hour*.csv – one CSV per hour for manual inspection / debugging.
 
@@ -25,11 +25,13 @@ def write_vehicle_def_to_file(
     out_fname: str,
     vType: dict | None = None,
 ) -> None:
-    """Write vehicle definitions to a SUMO routes.xml file.
+    """Write vehicle definitions to a SUMO trips.xml file.
 
-    Each vehicle receives a sequential id veh_0, veh_1, ... and an
-    inline <route> element listing the edge sequence. Vehicles with
-    empty routes are silently skipped.
+    Each vehicle receives a sequential id veh_0, veh_1, ... and is
+    written as a <trip> element with its from (first edge) and to
+    (last edge) attributes.  This lets duarouter freely re-route each
+    vehicle every Monte Carlo iteration using randomised edge weights.
+    Vehicles with empty routes are silently skipped.
 
     Parameters
     ----------
@@ -38,8 +40,9 @@ def write_vehicle_def_to_file(
     out_fname:
         Destination file path.
     vType:
-        Optional vehicle type dict with keys id, vClass, guiShape.  
-        When provided a <vType> element is prepended and each vehicle references it.
+        Optional vehicle type dict with keys id, vClass, guiShape.
+        When provided a <vType> element is prepended and each trip
+        references it via the type attribute.
     """
     root = ET.Element("routes")
 
@@ -58,14 +61,15 @@ def write_vehicle_def_to_file(
     for tick, route in vehicles_sorted:
         if not route:
             continue
-        vehicle_el = ET.SubElement(
-            root,
-            "vehicle",
-            attrib={"id": f"veh_{veh_idx}", "depart": str(tick)},
-        )
+        trip_attrib = {
+            "id": f"veh_{veh_idx}",
+            "depart": str(tick),
+            "from": str(route[0]),
+            "to": str(route[-1]),
+        }
         if vType is not None:
-            vehicle_el.set("type", str(vType["id"]))
-        ET.SubElement(vehicle_el, "route", attrib={"edges": " ".join(route)})
+            trip_attrib["type"] = str(vType["id"])
+        ET.SubElement(root, "trip", attrib=trip_attrib)
         veh_idx += 1
 
     with open(out_fname, "w", encoding="utf-8") as fd:

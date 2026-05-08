@@ -24,7 +24,7 @@ Edge-expanded network
 The routing graph uses SUMO edge ids as nodes (rather than junction ids).
 Edges of consecutive road segments are connected with a weight equal to the
 successor edge's length.  This representation produces paths that can be
-written directly into routes.xml without any further conversion.
+used to extract the from/to endpoints written into trips.xml.
 """
 
 from __future__ import annotations

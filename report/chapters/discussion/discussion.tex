@@ -10,12 +10,73 @@ Present the key findings of the thesis.
 Present the practical implications for urban planners.
 \end{bluenote}
 
-\subsection{Limitations and validity checks}
-\begin{bluenote}
-This section critically discusses limitations (including simulation realism) and frames these as
-threats to validity and explains how they might bias the evaluation or restrict generalization of
-findings.
-\end{bluenote}
+\subsection{Limitations}
+
+Several methodological and modelling choices restrict the scope of the conclusions that can be
+drawn from the current framework. The following limitations are grouped by the stage of the
+pipeline they affect and are discussed in terms of the threat they pose to internal and external
+validity.
+
+\subsubsection{Single-closure assumption}
+The deviation plan maker and the route rewriter are both designed around a single closed edge at a
+time. In practice, roadworks often affect a contiguous segment spanning several edges or a whole
+junction and emergency closures occasionally create simultaneous disruptions in different parts of
+the network. The current framework does not support overlapping or cascading closures: running
+the pipeline twice for two independent edges produces plans that are optimal in isolation but may
+conflict spatially when applied together. Extending the blocked-edge set to a multi-edge closure
+is technically straightforward, but the interaction between concurrent detour plans (which
+detour plan causes what effects) needs to be studied. 
+
+\subsubsection{No intra-zone demand}
+Demand is synthesised from TAZ-level OD matrices, which by construction assign all trip origins
+and destinations to zone centroids. Trips whose true origin and destination both lie inside the
+same TAZ are therefore excluded from the demand entirely. In the \emph{city\_tiny} scenario each
+TAZ is small and the synthetic demand is deliberately cross-zonal, so this simplification has
+limited impact, however, on real networks with large zones, intra-zonal demand can represent a
+significant share of daily trips. Vehicles that depart and arrive within the same zone are also
+the most likely to use short local roads in the vicinity of the closed edge, meaning that the
+framework may underestimate the fraction of demand directly affected by the closure.
+
+\subsubsection{Hourly OD time resolution}
+OD matrices are aggregated over one-hour intervals. Sub-hourly demand surges (such as the sharp
+traffic spike at the end of a sports event or the fifteen-minute burst following a school
+bell) are smoothed away. Because duarouter distributes departures uniformly within each hourly
+bucket, the simulated traffic loading during the closure is an average over the full hour rather
+than a realistic second-by-second profile. This can cause the MC evaluation to underestimate
+peak-period congestion on detour corridors, which in turn biases the incremental delay estimates
+downward for high-density time windows.
+
+\subsubsection{Synthetic network only}
+All presented results come from the \emph{city\_tiny} procedurally generated network. Because
+the network topology, TAZ layout and demand profile are artificial, the absolute numbers reported
+(vehicle-hours of delay, phi\_net values) cannot be interpreted as predictions for any real city.
+The framework's correctness is demonstrated on a controlled, reproducible test case, but
+generalization to real urban networks requires validation against observed data from an actual
+closure event.
+
+\subsubsection{Demand fixed across Monte Carlo runs}
+Stochasticity in the Monte Carlo loop enters exclusively through duarouter's randomised edge
+weights. The vehicle population (departure times, origin-destination pairs) is generated once and
+held constant across all 30 runs. Real-world demand is itself uncertain: travellers receive
+information about the closure at different times, some cancel their trips and others shift their
+departure time. Demand-side uncertainty is therefore not captured and the variance in the MC
+outputs reflects only route-assignment variability, not the full uncertainty of real closure
+impacts.
+
+\subsubsection{Single vehicle class}
+The simulation models only private passenger cars. Freight vehicles, buses, trams, cyclists and
+pedestrians are absent from the demand. This matters particularly for plan evaluation: heavy
+goods vehicles have different routing constraints (height and weight restrictions, turning radii)
+that may make some candidate detour edges physically infeasible for them even if they are optimal
+for private cars. Emergency services are similarly excluded, so the impact of a closure on
+response times is not assessed.
+
+\subsubsection{Static plan generation}
+Plans are computed once from the network topology at the moment the closure is declared. The
+framework does not adapt plans to the real-time traffic state: if a candidate detour is already
+near saturation before the closure occurs, the plan generator has no mechanism to avoid it.
+A natural extension would integrate a live traffic data feed so that edge weights at plan
+generation time reflect current conditions rather than free-flow speeds.
 
 \subsection{Future work}
 \begin{bluenote}

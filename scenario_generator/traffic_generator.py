@@ -292,7 +292,7 @@ class TrafficGenerator:
             )
 
         write_hourly_od_csvs(hourly_od_matrices, self.config.output_path)
-        write_vehicle_def_to_file(vehicles_with_routes, self.config.outpath("routes.xml"), vType=None)
+        write_vehicle_def_to_file(vehicles_with_routes, self.config.outpath("trips.xml"), vType=None)
 
     @staticmethod
     def _log_generation_summary(

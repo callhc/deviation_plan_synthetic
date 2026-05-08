@@ -1,0 +1,307 @@
+{
+  "closed_edge": "172",
+  "plans": [
+    {
+      "plan_id": "upstream_01",
+      "rank": 1,
+      "depth": 4,
+      "detour_edges": [
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "42",
+      "target_node": "171",
+      "total_length_m": 350.67999999999995
+    },
+    {
+      "plan_id": "upstream_02",
+      "rank": 2,
+      "depth": 4,
+      "detour_edges": [
+        "-35",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "34",
+      "target_node": "171",
+      "total_length_m": 531.88
+    },
+    {
+      "plan_id": "upstream_03",
+      "rank": 3,
+      "depth": 4,
+      "detour_edges": [
+        "-754",
+        "753",
+        "-447",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "178",
+      "target_node": "171",
+      "total_length_m": 672.8899999999999
+    },
+    {
+      "plan_id": "upstream_04",
+      "rank": 4,
+      "depth": 4,
+      "detour_edges": [
+        "-198",
+        "-166",
+        "-29",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "197",
+      "target_node": "171",
+      "total_length_m": 723.6300000000001
+    },
+    {
+      "plan_id": "upstream_05",
+      "rank": 5,
+      "depth": 4,
+      "detour_edges": [
+        "-191",
+        "175",
+        "-35",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "190",
+      "target_node": "171",
+      "total_length_m": 778.5500000000002
+    },
+    {
+      "plan_id": "upstream_06",
+      "rank": 6,
+      "depth": 4,
+      "detour_edges": [
+        "-202",
+        "-166",
+        "-29",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "201",
+      "target_node": "171",
+      "total_length_m": 793.6300000000001
+    },
+    {
+      "plan_id": "upstream_07",
+      "rank": 7,
+      "depth": 3,
+      "detour_edges": [
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "15",
+      "target_node": "171",
+      "total_length_m": 406.28
+    },
+    {
+      "plan_id": "upstream_08",
+      "rank": 8,
+      "depth": 3,
+      "detour_edges": [
+        "175",
+        "-35",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "157",
+      "target_node": "171",
+      "total_length_m": 657.48
+    },
+    {
+      "plan_id": "upstream_09",
+      "rank": 9,
+      "depth": 3,
+      "detour_edges": [
+        "-166",
+        "-29",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "165",
+      "target_node": "171",
+      "total_length_m": 668.03
+    },
+    {
+      "plan_id": "upstream_10",
+      "rank": 10,
+      "depth": 3,
+      "detour_edges": [
+        "-160",
+        "-23",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "159",
+      "target_node": "171",
+      "total_length_m": 673.3599999999999
+    },
+    {
+      "plan_id": "upstream_11",
+      "rank": 11,
+      "depth": 2,
+      "detour_edges": [
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "6",
+      "target_node": "171",
+      "total_length_m": 457.34999999999997
+    },
+    {
+      "plan_id": "upstream_12",
+      "rank": 12,
+      "depth": 2,
+      "detour_edges": [
+        "-31",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "8",
+      "target_node": "171",
+      "total_length_m": 457.34999999999997
+    },
+    {
+      "plan_id": "upstream_13",
+      "rank": 13,
+      "depth": 2,
+      "detour_edges": [
+        "-23",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "22",
+      "target_node": "171",
+      "total_length_m": 610.56
+    },
+    {
+      "plan_id": "upstream_14",
+      "rank": 14,
+      "depth": 2,
+      "detour_edges": [
+        "-29",
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "28",
+      "target_node": "171",
+      "total_length_m": 610.56
+    },
+    {
+      "plan_id": "upstream_15",
+      "rank": 15,
+      "depth": 1,
+      "detour_edges": [
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "1",
+      "target_node": "171",
+      "total_length_m": 508.41999999999996
+    },
+    {
+      "plan_id": "upstream_16",
+      "rank": 16,
+      "depth": 1,
+      "detour_edges": [
+        "-13",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "12",
+      "target_node": "171",
+      "total_length_m": 559.49
+    },
+    {
+      "plan_id": "upstream_17",
+      "rank": 17,
+      "depth": 0,
+      "detour_edges": [
+        "-3",
+        "7",
+        "16",
+        "43",
+        "445",
+        "-744",
+        "-433",
+        "-206"
+      ],
+      "source_node": "2",
+      "target_node": "171",
+      "total_length_m": 559.49
+    }
+  ]
+}
