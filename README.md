@@ -1,157 +1,129 @@
 # An Experimental Framework for Evaluating Traffic Deviation Plans
 
-This repository contains the code produced for my Master's thesis in Computer Sciences. The thesis investigates how a microscopic traffic digital twin, combined with a Monte Carlo simulation protocol, can be used to systematically evaluate and rank candidate deviation plans for urban road closures.
+This repository contains the code produced for a Master's thesis in Computer
+Sciences. It studies how a microscopic SUMO traffic digital twin, stochastic
+routing, and Monte Carlo analysis can be combined to compare candidate
+deviation plans for road closures.
 
-## Context
+When an edge has to be closed for works, events, or incidents, the framework
+supports the full analysis workflow:
 
-When a road segment must be closed (maintenance, events, accidents), traffic managers need to choose a deviation plan (a set of alternative routes to redirect affected vehicles). This framework automates that decision process end to end: it generates a realistic synthetic traffic scenario, enumerates candidate deviation plans, stress-tests each plan across many stochastic simulation runs, and produces a statistically grounded ranking.
+1. Generate a synthetic one-day traffic demand scenario.
+2. Build candidate deviation plans around the closure.
+3. Run repeated SUMO simulations with stochastic route choice.
+4. Evaluate and rank the plans with paired statistics and multi-criteria
+   decision analysis.
 
-## Repository structure
+The stages are intentionally usable as independent Python packages. There is
+currently no single end-to-end runner in the repository; run the stages you
+need explicitly.
 
-```
+## Repository Structure
+
+```text
 .
-├── scenario_generator/       # Stage 1 — synthetic demand generation
-├── deviation_plan_maker/         # Stage 2 — graph-based deviation plan computation
-├── TBD monte_carlo_simulation/   # Stage 3 — SUMO simulation with random seeds
-├── TBD evaluator/                # Stage 4 — statistical analysis and plan ranking
-│
+├── scenario_generator/       # Stage 1: synthetic OD demand and trips.xml
+├── deviation_plan_maker/     # Stage 2: detour computation and route rewriting
+├── monte_carlo_simulation/   # Stage 3: repeated duarouter + SUMO runs
+├── evaluator/                # Stage 4: statistics, MCDA, and reports
 ├── data/
-│   ├── networks/             # SUMO road networks (.net.xml)
-│   ├── configs/              # TOML configuration files per scenario
-│   └── detour_plans/         # Pre-computed detour plan definitions (.json)
-│
-├── results/                  # Monte Carlo output folders (one per experiment)
-├── run_pipeline.py           # End-to-end pipeline runner
-│
-└── report/                   # LaTeX source of the thesis report
+│   ├── configs/              # Example TOML scenario configs and local inputs
+│   ├── detour_plans/         # Example deviation-plan JSON files
+│   └── networks/             # SUMO .net.xml networks
+├── report/                   # LaTeX thesis report source and compiled PDF
+├── requirements.txt          # Python dependencies, excluding SUMO/sumolib
+└── mc_pipeline_diagram.svg   # Pipeline diagram used by the thesis material
 ```
 
 ## Pipeline
 
-The four modules correspond to four sequential stages:
-
-| Stage | Module | Input | Output |
+| Stage | Package | Main input | Main output |
 |---|---|---|---|
-| 1 | `scenario_generator` | `.net.xml`, `taz.xml`, `config.toml` | `routes.xml`, OD matrices |
-| 2 | `deviation_plan_maker` | `.net.xml`, closed edge id | `plans.json` |
-| 3 | `monte_carlo_simulation` | `routes.xml`, `plans.json` | `run_*/`, `summary.json` |
-| 4 | `evaluator` | `summary.json` | `evaluation.json`, Markdown report |
+| 1 | [`scenario_generator`](scenario_generator/README.md) | SUMO `net.xml`, TAZ file, TOML config | `trips.xml`, OD matrices, inspection CSVs |
+| 2 | [`deviation_plan_maker`](deviation_plan_maker/README.md) | SUMO `net.xml`, closed edge ids | `DeviationPlan` objects or JSON plan files |
+| 3 | [`monte_carlo_simulation`](monte_carlo_simulation/README.md) | `trips.xml`, plan JSON, SUMO network | `run_*/results.json`, `summary.json` |
+| 4 | [`evaluator`](evaluator/README.md) | Monte Carlo output directory | `evaluation.json`, `evaluation.md`, best-plan ranking |
 
-Each module can also be used standalone — see the `README.md` inside each module directory for a detailed description.
+## Setup
 
-## Modules
+Use Python 3.11 or newer. `tomllib` is part of the standard library from 3.11.
 
-### `scenario_generator`
-
-Generates a reproducible synthetic traffic demand scenario from a SUMO road network and a Traffic Analysis Zone (TAZ) file. The pipeline runs in three stages: (1) hourly OD matrices from a two-peak gravity model with an optional commute overlay, (2) a candidate route library per OD pair using Yen's *k*-shortest paths algorithm on an edge-expanded graph, and (3) vehicle instantiation with uniform departure times and route selection.
-
-```bash
-python -m scenario_generator.generator data/configs/city_tiny_very_high/config.toml
-```
-
-### `deviation_plan_maker`
-
-Computes candidate deviation plans around a set of closed edges and rewrites a SUMO `routes.xml` to redirect affected vehicles. The module works in two stages.
-
-**Stage 1 — detour planning** (`network_graph.py`): loads a SUMO `net.xml` into a lightweight directed graph (no external library) and finds alternative routes using two complementary strategies:
-
-- `compute_deviation_plans` — Yen's k-shortest loopless paths from the closure's immediate source junction. All plans are at depth 0 and are sorted by routing cost. Use this when a single branching point at the closure entrance is sufficient.
-- `compute_upstream_deviation_plans` — reverse BFS from the source junction up to a configurable depth, followed by Dijkstra from each discovered upstream origin. Plans are depth-tagged and sorted deepest-first, so the rewriter can intercept vehicles as far upstream as possible and fall back gracefully toward the depth-0 universal plan.
-
-Before any path search, both methods resolve the detour endpoints: if the source junction has only one outgoing edge (no real alternative), the algorithm walks upstream until a proper branching point is found; the same adjustment is applied downstream at the target. Any such adjustments are recorded in `DeviationPlan.notes`.
-
-Edge weights default to geometric length in metres. Free-flow travel time or any other scalar field can be loaded from a SUMO `edgedata.xml` file (`load_edge_weights_from_edgedata` with `invert=True` to convert speed to travel-time cost).
-
-**Stage 2 — route rewriting** (`route_rewriter.py`): for every `<vehicle>`, `<trip>`, and `<flow>` in the routes file whose edge sequence crosses the closed segment, `apply_detour_to_routes` selects the deepest applicable plan (whose `source_node` appears in the vehicle's route before the closure) and splices the detour in. The depth-0 plan acts as the guaranteed fallback for every affected vehicle.
-
-```python
-from pathlib import Path
-from deviation_plan_maker import NetworkGraph, apply_detour_to_routes
-
-graph = NetworkGraph.from_net_xml(Path("network.net.xml"))
-graph.load_edge_weights_from_edgedata(Path("edgedata.xml"), field="speed", invert=True)
-
-plans, missing, blocked = graph.compute_upstream_deviation_plans(
-    ["closed_edge_1"], depth=2
-)
-
-apply_detour_to_routes(
-    input_routes=Path("routes.xml"),
-    output_routes=Path("routes_detour.xml"),
-    plans=plans,
-    closed_edges=["closed_edge_1"],
-    edge_nodes=graph.get_edge_nodes(),
-)
-```
-
-A browser-based visualiser (`deviation_plan_maker/ui/index.html`) lets you load a `net.xml`, click edges to define a closure, and inspect the resulting detour overlaid on the network — no server required.
-
-## Getting started
-
-### 1. Prerequisites
-
-- **Python 3.11+** (`tomllib` is part of the standard library from 3.11)
-- **[SUMO](https://sumo.dlr.de/docs/Installing/)** — the `sumo` binary and `sumolib` must be reachable. After installing SUMO, set the two environment variables below (adjust the path to your actual installation):
+Install SUMO separately and make both the command-line binaries and `sumolib`
+available:
 
 ```bash
-export SUMO_HOME="/usr/share/sumo"          # or wherever SUMO is installed
+export SUMO_HOME="/usr/share/sumo"
+export PATH="$SUMO_HOME/bin:$PATH"
 export PYTHONPATH="$SUMO_HOME/tools:$PYTHONPATH"
 ```
 
-### 2. Install Python dependencies
+Then install the Python dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run each module standalone
+`requirements.txt` intentionally does not list `sumolib`, because it is bundled
+with SUMO.
 
-If you only need one stage, each module exposes its own entry point.
+## Basic Usage
 
-**Stage 1 — Generate a traffic scenario**
+Generate a demand scenario:
 
 ```bash
 python -m scenario_generator.generator data/configs/city_tiny_very_high/config.toml
 ```
 
-Output (routes, OD matrices, plots) is written to the directory set by `output_path` in the config file.
+The generator writes its files to the `output_path` configured in the TOML file,
+including `trips.xml`.
 
-**Stage 2 — Compute deviation plans**
+Build or export a deviation-plan JSON file with `deviation_plan_maker`. The
+package exposes a Python API and a browser-only visual interface at
+`deviation_plan_maker/ui/index.html`; see
+[`deviation_plan_maker/README.md`](deviation_plan_maker/README.md) for details.
 
-```python
-from pathlib import Path
-from deviation_plan_maker import NetworkGraph, apply_detour_to_routes
+Run Monte Carlo simulations:
 
-graph = NetworkGraph.from_net_xml(Path("data/networks/city_tiny.net.xml"))
-plans, _, _ = graph.compute_upstream_deviation_plans(["closed_edge_id"], depth=2)
-apply_detour_to_routes(
-    input_routes=Path("routes.xml"),
-    output_routes=Path("routes_detour.xml"),
-    plans=plans,
-    closed_edges=["closed_edge_id"],
-    edge_nodes=graph.get_edge_nodes(),
-)
+```bash
+python -m monte_carlo_simulation.simulation \
+    --net data/configs/city_tiny_very_high/city_tiny.net.xml \
+    --plan data/detour_plans/detour_city_tiny.json \
+    --trips output_city_tiny_very_high/trips.xml \
+    --runs 30 \
+    --parallel 4 \
+    --output mc_output/
 ```
 
-See `deviation_plan_maker/README.md` for the full API reference.
+Evaluate the completed runs:
+
+```bash
+python -m evaluator.evaluate --input mc_output/
+```
+
+The evaluator writes `mc_output/evaluation.json` and `mc_output/evaluation.md`.
 
 ## Data
 
-Network files and configuration files are provided in `data/`. The main test network is `city_tiny.net.xml`, a small synthetic urban network used for all experiments reported in the thesis. Larger networks (`cologne_reduced.net.xml`) are included for scalability experiments.
+The `data/` directory contains small networks, example scenario configs, and
+example deviation plans used for experimentation. The `city_tiny` variants are
+the main compact test cases. `cologne_reduced.net.xml` is included for larger
+network experiments.
 
-Configuration files (`.toml`) control all parameters of the demand model, simulation, and evaluation. The key parameters are documented inline and summarised in the thesis methodology chapter.
+Configuration files control scenario generation parameters such as demand
+volume, TAZ input, temporal profile, random seed, and commute-pattern overlays.
+The package READMEs document the file contracts between stages.
 
-## Thesis report
+## Thesis Report
 
-The LaTeX source of the thesis is in `master_thesis_REPORT/`. To compile:
+The LaTeX source and compiled PDF are in `report/`. To rebuild the report:
 
 ```bash
-cd master_thesis_REPORT
+cd report
 latexmk -pdf main.tex
 ```
 
-Requires a TeX Live distribution with `biblatex` and `biber`.
+This requires a TeX distribution with `biblatex` and `biber`.
 
 ---
 
-*Hugo Callens — Master's thesis in Computer Sciences, 2026*
+Hugo Callens - Master's thesis in Computer Sciences, 2026
