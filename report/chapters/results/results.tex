@@ -64,34 +64,6 @@ plan minus baseline, where the baseline is the unclosed-network reference.}
 \label{tab:results_mc_summary}
 \end{table}
 
-For reference, the deterministic candidate-generation stage is inexpensive on
-this toy network. A simple wall-clock benchmark on the development machine,
-averaged over 200 repetitions, loaded the 364-edge SUMO graph in
-$13.8$~ms, generated the 8 Yen candidates in $5.3$~ms after graph loading,
-and generated the 17 upstream candidates in $2.0$~ms after graph loading.
-These timings exclude the SUMO Monte Carlo simulations, which dominate the
-runtime and scale with the number of replications and candidate plans. The
-evaluator post-processing for the 30-run, two-plan manual result set took
-about $23$~s because it reparses the stored XML outputs.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{@{}lll@{}}
-\toprule
-Step & Output & Mean wall-clock time \\
-\midrule
-Load SUMO network graph & 364 directed edges & $13.8$~ms \\
-Yen generation, $k=8$ & 8 candidate plans & $5.3$~ms \\
-Upstream generation, depth 4 & 17 candidate plans & $2.0$~ms \\
-Evaluator post-processing & 30 runs, 2 plans & $\approx 23$~s \\
-\bottomrule
-\end{tabular}
-\caption{Indicative computation times for the draft experiment. Candidate
-generation times exclude SUMO simulation and are measured after the input data
-were already present on disk.}
-\label{tab:results_computation_times}
-\end{table}
-
 \subsection{Manually-defined plans}
 
 The test network contains 364 directed road edges, 364 lanes, 120 junctions
@@ -396,7 +368,7 @@ tedious to enumerate manually. The comparison remains preliminary because the
 plan families were not all evaluated with the same number of Monte Carlo
 replications.
 
-\subsection{Real-neighbourhood validation: Flagey}
+\subsection{Real-neighbourhood validation}
 
 To verify that the workflow is not tied to the regular geometry of the toy
 network, the same manually-defined-plan protocol was repeated on a small

@@ -224,8 +224,7 @@ are ordered by insertion time rather than by a potentially fragile
 lexicographic comparison of node lists.
 
 \begin{algorithm}[H]
-\caption{High-level pseudocode for \textsc{YenKShortestPaths}, which enumerates
-up to $k$ loopless detour paths while avoiding blocked edges.}\label{alg:yen}
+\caption{\textsc{YenKShortestPaths}}\label{alg:yen}
 \begin{algorithmic}[1]
 \Require graph $G$, source $s$, target $t$, integer $k \geq 1$, blocked set $B$
 \Ensure list $\mathcal{P}$ of up to $k$ diverse shortest paths from $s$ to $t$ avoiding $B$
@@ -262,8 +261,7 @@ Algorithm~\ref{alg:upstream} summarizes this reverse search, path computation
 and sorting step.
 
 \begin{algorithm}[H]
-\caption{High-level pseudocode for \textsc{UpstreamDeviationPlans}, which
-searches upstream origins and sorts feasible detours by depth and length.}\label{alg:upstream}
+\caption{\textsc{UpstreamDeviationPlans}}\label{alg:upstream}
 \begin{algorithmic}[1]
 \Require graph $G$, endpoints $s$, $t$, blocked set $B$, max depth $d_{\max}$
 \Ensure deviation plans sorted by depth (desc), then length (asc)
@@ -288,7 +286,7 @@ network: nodes $s$ and $t$ are the detour endpoints, $p$ and $q$ are
 intermediate junctions and the direct edge $s\to t$ belongs to the blocked
 set $B$.
 
-\begin{figure}[H]
+\begin{figure}[h]
 \centering
 %%------------------------------------------------------------
 %% (a) Yen's k-shortest paths
@@ -416,7 +414,7 @@ list, the ordered sequences of junction and edge identifiers and the
 total geometric length in meters (computed by summing the
 \texttt{length\_m} attribute of every edge on the path).
 
-No post-filtering is applied at this point. Plans are not removed because of a
+Plans are not removed because of a
 maximum detour-length ratio and near-duplicates are not removed by edge-set
 overlap. This keeps the planning stage simple and avoids discarding a route
 before it has been tested in simulation. Two routes can share most of their
@@ -446,8 +444,7 @@ from $\mathcal{D}^*.s$ to the last closed edge with the detour edge sequence
 $\mathcal{D}^*.P$. This is a splice in the vehicle's edge list.
 
 \begin{algorithm}[H]
-\caption{High-level pseudocode for \textsc{DepthAwareRewrite}, which selects
-the deepest applicable detour and splices it into an affected route.}\label{alg:rewrite}
+\caption{\textsc{DepthAwareRewrite}}\label{alg:rewrite}
 \begin{algorithmic}[1]
 \Require vehicle route $R$, candidate plans $\mathcal{D}$ sorted by depth (desc),
          closed edge set $B_c$
