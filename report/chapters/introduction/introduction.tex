@@ -1,1 +1,65 @@
+% INTRODUCTION
 \section{Introduction}
+\subsection{Digital Twin}
+A \textbf{digital twin} is a data-driven virtual representation 
+of real-world entities designed to mirror a physical object or 
+system throughout its lifecycle. The virtual part is updated with 
+real-time data gotten from sensors or other sources making it possible 
+to link the physical and digital parts. \cite{defDT, IBMDT} 
+
+A digital twin consists of three components \cite{DT_health} :
+\begin{enumerate}
+    \item \textbf{Physical entity} : The real-world object or system being modeled (e.g., traffic, a plant)
+    \item \textbf{Virtual representation} : A model that replicates the behavior of the physical entity.
+    \item \textbf{Connection} : The link between the physical system and the virtual system making it possible to update the physical system by exchanging information via this real-time connection. 
+\end{enumerate}
+Figure~\ref{fig:digital_twin} summarises this relationship between the
+physical object, the virtual model and the data connection.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{digital_twin.png}
+    \caption{Illustration of a digital twin from \cite{digital_twin}}
+    \label{fig:digital_twin}
+\end{figure}
+
+
+Digital twins receive continuously streams of data from sensors 
+or other sources ensuring that the virtual model replicates the 
+current state of the physical object. The main goals for a 
+digital twin are to simulate the physical entity and predict what could happen in 
+order to optimize or predict failures.  Urban traffic networks, which are both data-rich and fast-evolving, provide fertile ground for the deployment of digital twins. Figure~\ref{fig:dt_traffic_twin} gives an example workflow for linking SUMO to map and sensor inputs in this context. Digital twins in traffic can potentially simulate and optimize traffic flows, supporting smarter city planning and real-time operations. A detailed discussion of modern digital twin solutions in traffic management is provided in \textbf{Section \ref{dt_traffic_simulation}}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{sumo_twin.png}
+    \caption{Example workflow for driving SUMO towards a digital twin. Various static and real-time data sources (maps, sensors, cameras) are integrated into simulation models to continuously update and calibrate the digital twin for real-world application. Source : \cite{sumo_twin}}
+    \label{fig:dt_traffic_twin}
+\end{figure}
+
+
+\subsection{Context}
+
+In this project, a digital twin acts as a precise and efficient method to simulate traffic 
+based on real-world data. Digital twins leverage continuous data streams (for example, from 
+vehicle counting devices) to create an up-to-date virtual model of physical traffic flows. 
+Accurate traffic simulation relies on high-resolution data, typically gathered by a variety of counting devices such as inductive loop traffic detectors, Bluetooth recognition systems and ANPR (Automatic Number Plate Recognition) cameras \cite{counting_devices}. These devices measure the number of vehicles passing specific locations over time, producing the data needed for dynamic modeling and simulation.
+
+Through the aggregation and analysis of such data, it becomes possible to estimate traffic density and infer vehicle movement patterns across a road network. In this framework, physical traffic corresponds to the physical entity of the digital twin, real-time vehicle counts represent the virtual layer and the counting devices themselves serve as the communication link between the physical and digital components.
+
+Traffic simulation is particularly vital in urban environments such as Brussels, where the frequent congestion and ongoing roadworks demand dynamic management of the transport network.
+Planned deviations due to construction may alter typical traffic flows and produce unexpected bottlenecks. Accurate simulation enables city planners to evaluate alternative deviation plans and identify those that minimize congestion and disruption. Additionally, the direct and indirect effects of traffic interventions, such as road closures, can be promptly assessed.  
+
+
+
+\subsection{Objective}
+The main objective of this work is to develop a reproducible experimental framework for evaluating deviation plans when a road segment is closed. Instead of focusing on the migration of an existing interface, this thesis studies how a SUMO-based traffic digital twin, stochastic routing and repeated simulation can be combined to compare candidate detours in a structured way. The work is divided into several sub-goals.
+
+\begin{itemize}
+    \item \textbf{Scenario generation:} The construction of a synthetic, network-aware demand scenario from a SUMO road network and Traffic Analysis Zone data.
+    \item \textbf{Deviation-plan computation:} The generation of candidate detour paths around a closed edge or sequence of edges, together with route-rewriting rules that apply these plans to affected vehicles.
+    \item \textbf{Stochastic simulation:} The execution of repeated SUMO simulations using randomized routing seeds and paired baseline runs in order to capture variability in route choice and traffic outcomes.
+    \item \textbf{Evaluation and decision support:} The comparison of candidate plans using traffic indicators, paired statistics, feasibility checks and multi-criteria decision analysis.
+    \item \textbf{Framework validation:} The application of the full pipeline to controlled experiments and a Brussels neighbourhood case study in order to assess its usefulness and limitations.
+\end{itemize}
+
+Ultimately, the goal is to support city planners and traffic managers with a data-driven method for comparing deviation plans before they are deployed on the road network.

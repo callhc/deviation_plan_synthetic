@@ -1,7 +1,5 @@
 \subsection{Scenario generation}
 
-\textcolor{blue}{Maybe have more "mathematical" figures in this part rather than results-oriented}
-
 The scenario generator creates the demand used by the rest of the pipeline. In
 this work, the demand must satisfy four constraints:
 \begin{enumerate}
@@ -14,11 +12,20 @@ this work, the demand must satisfy four constraints:
       residential zones toward employment zones and back.
 \end{enumerate}
 
+This module is thesis code. It does not claim to estimate real Brussels demand
+from counts, surveys or mobile-phone traces. Instead, it constructs a
+controlled synthetic demand that is consistent with the available network
+files and is rich enough to test the detour-generation and evaluation
+pipeline. The standard modelling components used for this purpose are
+identified below, and the thesis-specific choices are the proxies,
+normalisations and sampling procedures used to turn them into reproducible
+SUMO inputs.
+
 \subsubsection{Module overview}
 The generation is split into three stages:
 \begin{enumerate}
   \item \textbf{Stage 1 - Demand generation}: construct 24 hourly
-        Origin\nobreakdash–Destination (OD) matrices using a gravity model
+        Origin\nobreakdash–Destination (OD) matrices using a gravity model \cite{gravity_model}
         with an optional directional commute overlay.
   \item \textbf{Stage 2 - Route library}: build a small set of candidate
         routes for each active OD pair using Yen's $k$-shortest
@@ -29,6 +36,10 @@ The generation is split into three stages:
 \end{enumerate}
 
 \subsubsection{Stage 1 : Demand generation}
+\label{ssec:stage_1_demand_generation}
+Stage 1 produces hourly OD matrices, not individual routes. The output of this
+stage is a set of zone-to-zone trip counts for each hour of the day. Individual
+departure times and SUMO edge endpoints are assigned only in Stage 3.
 
 \paragraph{Traffic Analysis Zones}
 The spatial unit of the model is the \emph{Traffic Analysis Zone} (TAZ),
@@ -44,12 +55,19 @@ edge lengths :
   m_i = \sum_{e \in \mathcal{E}_i} \ell(e) \cdot n(e)
   \label{eq:zone_mass}
 \end{equation}
-where $\ell(e)$ is the length of edge $e$ in meters and $n(e)$ is its lane count. 
+where $\ell(e)$ is the length of edge $e$ in meters and $n(e)$ is its lane count and 
+$\mathcal{E}_i$ is the set of edges in TAZ $i$. 
 
-Equation \ref{eq:zone_mass} is an approximation, used because no calibrated
-socio-economic productions or attractions are available for this synthetic
-setting. In a classical four-step transport model, those quantities would be
-estimated from socio-economic data \cite{modelling_transport}. Here, lane
+Equation~\eqref{eq:zone_mass} should therefore be interpreted as an infrastructure-based 
+proxy for the relative importance of each TAZ, rather than as a calibrated measure of 
+real travel demand. The formula only accounts for the total drivable road space inside a 
+zone, through edge lengths and lane counts. The underlying assumption is that zones containing 
+more and larger road infrastructure are likely to support more traffic activity and can 
+therefore be assigned a larger synthetic production or attraction mass. This approximation 
+is used because no calibrated socio-economic productions or attractions, such as population, 
+employment, land use, or observed trip data are available for this synthetic setting. In a 
+classical four-step transport model, these quantities would instead be estimated from socio-economic 
+data \cite{modelling_transport}. Here, lane
 kilometres\footnote{A lane kilometre is one kilometre of road with one lane.}
 are used as a practical surrogate: they are directly available from the
 network and major road corridors generally carry more traffic than minor
@@ -62,41 +80,54 @@ replace this proxy.
 The total daily demand $N$ is distributed across the 24 hours of the
 simulation using a \emph{two\nobreakdash-Gaussian profile}:
 \begin{equation}
-  p_h = \frac{a_m\,g(h;\,\mu_m,\sigma) + a_e\,g(h;\,\mu_e,\sigma)}
+  p_h = \frac{a_{AM}\,g(h;\,\mu_{AM},\sigma) + a_{PM}\,g(h;\,\mu_{PM},\sigma)}
              {\displaystyle\sum_{h'=0}^{23}
-              \bigl[a_m\,g(h';\,\mu_m,\sigma)
-                  + a_e\,g(h';\,\mu_e,\sigma)\bigr]},
+              \bigl[a_{AM}\,g(h';\,\mu_{AM},\sigma)
+                  + a_{PM}\,g(h';\,\mu_{PM},\sigma)\bigr]},
   \label{eq:twopeak_gaussian}
 \end{equation}
 where 
 \begin{equation}
   g(h;\,\mu,\sigma) = \exp\!\left(-\frac{(h-\mu)^2}{2\sigma^2}\right),
 \end{equation}
-$\mu_m$ and $\mu_e$ are the morning and evening peak hours respectively and
-$\sigma$ controls the temporal spread. The amplitudes $a_m$ and $a_e$ allow
+$\mu_{AM}$ and $\mu_{PM}$ are the morning and evening peak hours respectively and
+$\sigma$ controls the temporal spread. The amplitudes $a_{AM}$ and $a_{PM}$ allow
 the two peaks to differ in magnitude. The default configuration uses
-$a_e > a_m$, representing a slightly larger afternoon peak, which is common in
+$a_{AM} < a_{PM}$, representing a slightly larger afternoon peak, which is common in
 urban networks \cite{gaussian_book}.
 
 The continuous profile $p_h$ is converted into hourly trip counts $n_h$ with
 the largest-remainder method. This keeps the total exactly equal to $N$ while
 staying as close as possible to the continuous proportions.
 
-\begin{figure}[htbp]
+Figure~\ref{fig:hourly_demand} illustrates the mathematical structure of the
+two-peak profile before integer rounding.
+
+\begin{figure}[H]
   \centering
-  \includegraphics[width=0.92\textwidth]{plot_hourly_demand.pdf}
-  \caption{Hourly trip distribution produced by the two-Gaussian profile
-           (Equation~\ref{eq:twopeak_gaussian}) for the test scenario.
-           The orange bar marks the evening peak, which is slightly larger
-           than the morning peak ($a_e > a_m$).}
+  \safeincludegraphics[width=\textwidth]{illustrative_two_gaussian_profile.pdf}
+  \caption{Illustrative two-Gaussian daily demand profile used to distribute
+           the total daily demand across hours. The morning and evening
+           components are centred on $\mu_{AM}$ and $\mu_{PM}$, and the final hourly
+           share is proportional to their weighted sum
+           $a_{AM} g(h;\mu_{AM},\sigma)+a_{PM} g(h;\mu_{PM},\sigma)$.}
   \label{fig:hourly_demand}
 \end{figure}
 
 \paragraph{Gravity OD model}
 \label{par:gravity_od_model}
 
-The spatial distribution of trips across TAZ pairs is governed by a \emph{singly-constrained
-gravity model} \cite{gravity_model}. The \textbf{unnormalized} weight of the OD pair $(i,j)$ is :
+The gravity model itself is not a new model introduced by this thesis. It is a
+standard transport-planning model used to distribute trips between origins and
+destinations as a function of origin mass, destination mass and travel
+impedance \cite{gravity_model,modelling_transport}. What is specific to this
+work is its synthetic implementation: zone mass is approximated from lane
+kilometres, impedance is estimated from sampled shortest paths between TAZs
+and the resulting shares are converted into exact hourly integer OD matrices.
+
+The spatial distribution of trips across TAZ pairs is governed by a
+\emph{singly-constrained gravity model}. The \textbf{unnormalized} weight of
+the OD pair $(i,j)$ is:
 \begin{equation}
   w_{ij} = m_i \cdot m_j \cdot \exp(-\beta\, c_{ij}), \quad i \neq j,
   \label{eq:gravity_model}
@@ -124,34 +155,52 @@ total $n_h$ with the largest-remainder method, giving an exact integer OD
 matrix $T^h$ with
 $\sum_{ij} T^h_{ij} = n_h$.
 
-The model is \emph{singly-constrained on the production side}. Although the
-weight $w_{ij} = m_i m_j \exp(-\beta c_{ij})$ depends symmetrically on origin
-and destination masses, the normalisation in Equation~\ref{eq:od_share} enforces
-the row-sum constraint
+The model is \emph{singly-constrained on the production side}. In trip-distribution
+terminology, productions are the trips generated by each origin zone, whereas
+attractions are the trips received by each destination zone. A production-side
+constraint therefore fixes the total fraction of trips that must leave each
+origin. In Equation~\eqref{eq:od_share}, this production total is set by the
+origin mass share $m_i / \sum_k m_k$: after the destination probabilities for
+origin $i$ are normalised, they must sum to one, so the whole row must sum to
 \begin{equation*}
   \sum_j S_{ij} \;=\; \frac{m_i}{\sum_k m_k}
 \end{equation*}
-while leaving the column sums $\sum_i S_{ij}$ unconstrained. In Wilson's
-balancing-factor formulation \cite{modelling_transport}, this
+regardless of the destinations available from that origin. Equivalently, in an
+hour with $n_h$ trips, origin $i$ is assigned approximately
+$n_h m_i / \sum_k m_k$ outgoing trips before integer rounding.
+
+The destination side is different. The term $m_j\exp(-\beta c_{ij})$ still
+affects how the trips from origin $i$ are distributed across destinations:
+larger and closer destination zones receive higher conditional probability.
+However, no target total is imposed on the number of trips ending in
+destination $j$. The column sums $\sum_i S_{ij}$ are therefore left
+unconstrained and emerge from the aggregation of all origin rows. This is why
+the unnormalised weight $w_{ij} = m_i m_j \exp(-\beta c_{ij})$ can contain both
+origin and destination masses while the final model is still only constrained
+on the origin, or production, side.
+
+In Wilson's balancing-factor formulation \cite{modelling_transport}, this
 corresponds to enforcing only the origin-side factor $A_i$ and fixing the
 destination-side factor $B_j \equiv 1$. A doubly-constrained model would
 additionally enforce observed zonal attractions and would require both
-balancing factors to be recovered by iterative proportional fitting, zonal
-attractions are not observed in the present synthetic setting, so enforcing
+balancing factors to be recovered by iterative proportional fitting. Since
+zonal attractions are not observed in the present synthetic setting, enforcing
 them would add parameters that cannot be identified from the available data.
 For this reason, the singly-constrained formulation is used here: it relies
 only on the information present in the network (zone masses and impedances)
-and lets destination totals emerge from the distance-decay term
-$\exp(-\beta c_{ij})$.
+and lets destination totals emerge from the destination masses and
+distance-decay term $\exp(-\beta c_{ij})$.
+Figure~\ref{fig:od_heatmap} gives a schematic view of the same directed OD
+relations in matrix form.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{plot_od_heatmap.pdf}
-  \caption{Daily OD demand matrix $\sum_h T^h$ for the test scenario (20 TAZs,
-           10\,000 daily trips). Rows are origin zones, columns are destination
-           zones. The cell colour and annotation encode the total number of trips.
-           The diagonal is zero by construction (no intra demand). Dense
-           clusters correspond to adjacent zones with high lane-kilometer mass.}
+  \safeincludegraphics[width=\textwidth]{illustrative_od_matrix.pdf}
+  \caption{Schematic relationship between zone-to-zone trip relations and an
+           OD matrix. Rows represent origin zones, columns represent
+           destination zones, and each off-diagonal cell corresponds to the
+           relative demand assigned to one directed OD pair. The diagonal is
+           set to zero when intra-zonal trips are excluded.}
   \label{fig:od_heatmap}
 \end{figure}
 
@@ -160,8 +209,9 @@ $\exp(-\beta c_{ij})$.
 
 When residential weights $r_i$ and employment weights $e_i$ are available,
 the hourly OD shares can be tilted toward commuting patterns. Two additional
-gravity matrices are built: one for the morning peak, from residential zones
-to employment zones and one for the evening peak, in the reverse direction:
+gravity matrices are built: one for the morning peak (AM), from residential
+zones to employment zones and one for the evening peak (PM), in the reverse
+direction:
 \begin{align}
   w^{\mathrm{AM}}_{ij} &= m_i\, m_j\, f(c_{ij})\, r_i\, e_j, \\
   w^{\mathrm{PM}}_{ij} &= m_i\, m_j\, f(c_{ij})\, e_i\, r_j,
@@ -184,19 +234,17 @@ spread $\sigma$. The parameter $\lambda$ (\texttt{peak\_weight}) controls how
 strongly the commute pattern modifies the background gravity model. Setting
 $\lambda = 0$ recovers the base model. After blending, the shares are
 normalised before being converted into integer trips.
+Figure~\ref{fig:commute_overlay} illustrates how the AM and PM terms tilt the
+base gravity share in opposite commute directions.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{peak_directionality.png}
-  \caption{Effect of the commute overlay on the hourly OD matrices.
-           Left column: base gravity model ($\lambda = 0$). Centre column:
-           model with commute overlay ($\lambda > 0$). Right column:
-           difference (centre $-$ left). Top row: morning peak hour
-           ($h = 8$). Bottom row: evening peak hour ($h = 17$). Red cells
-           in the difference maps indicate flows amplified by the overlay,
-           blue cells indicate flows attenuated. The AM overlay concentrates
-           demand on residential$\to$employment corridors, the PM overlay
-           reverses this pattern.}
+  \safeincludegraphics[width=\textwidth]{illustrative_commute_overlay.pdf}
+  \caption{Illustrative commute overlay applied to the base gravity share.
+           The AM term increases residential-to-workplace OD weights, while
+           the PM term reverses the direction. In the implementation these
+           directional matrices are blended with the base share through
+           Equation~\ref{eq:commute_blend} and then renormalised.}
   \label{fig:commute_overlay}
 \end{figure}
 
@@ -294,4 +342,3 @@ The departure-time and endpoint draws use one seeded random-number generator.
 As a result, the generated \texttt{trips.xml} is reproducible. This matters
 because the Monte Carlo experiment is meant to vary routing and simulation
 seeds, not the underlying trip population.
-

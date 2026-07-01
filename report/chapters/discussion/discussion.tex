@@ -1,21 +1,70 @@
 \section{Discussion}
 
-\subsection{Key findings}
-\begin{bluenote}
-Present the key findings of the thesis.
-\end{bluenote}
+\subsection{Usefulness of the framework}
 
-\subsection{Practical implications for urban planners}
-\begin{bluenote}
-Present the practical implications for urban planners.
-\end{bluenote}
+The main value of the work is that it turns deviation planning from a
+manually inspected routing problem into a reproducible evaluation workflow.
+Starting from a SUMO network, a TAZ layer and a small set of configuration
+parameters, the framework produces synthetic demand, generates candidate
+detours, rewrites affected vehicle routes, runs paired simulations and ranks
+the resulting plans with the same criteria. This is useful even when the
+absolute numerical results are not yet calibrated to a real city, because it
+provides a controlled environment in which different diversion strategies can
+be compared on equal terms.
+
+The experiment also shows that automated candidate generation can add
+information beyond the manually selected detours. In the \emph{city\_tiny}
+case, the best Yen-generated plan reduces incremental delay relative to the
+best manual plan, while the upstream method finds earlier interception points
+that are not visible when the detour is defined only from the source of the
+closed edge. This does not replace expert judgement: a traffic manager still
+needs to check local constraints, signing possibilities and policy priorities.
+However, the automated methods widen the candidate set and make it easier to
+notice alternatives that would otherwise be tedious to enumerate by hand.
+
+A second useful aspect is the paired Monte Carlo evaluation. Each candidate
+plan is compared with the matching baseline under the same demand and routing
+seed, so the reported deltas describe the effect of the plan rather than an
+uncontrolled difference between simulation runs. The stochastic repetitions
+also expose whether the recommendation is robust. For the manual plans, the
+ranking is unambiguous because \texttt{plan\_1} dominates
+\texttt{plan\_2}. For the Yen and upstream candidates, the results show a
+more realistic decision problem: the best time-based plan is not always the
+best plan on the congestion proxy, so the preferred option depends on how the
+decision maker weights the criteria.
+
+This is an important implication of using a Pareto-based decision layer. When
+several candidates remain non-dominated, the evaluation should not be read as
+having failed to identify the best deviation plan. Rather, it reveals that the
+alternatives embody different compromises. One plan may minimise total network
+delay while increasing the burden on the vehicles that are directly affected by
+the closure; another may be less efficient on average but avoid severe
+spillback, distribute traffic more evenly across the network or perform more
+robustly across stochastic runs. The final choice is therefore partly a
+normative and operational decision. Besides mean delay and travel time, a
+traffic authority may need to evaluate the spatial distribution of congestion,
+the equity of the burden placed on different origin-destination pairs or
+neighbourhoods, the variance and worst-case outcomes across Monte Carlo runs,
+the sensitivity of the ranking to MCDA weights, and the practical feasibility
+of communicating and enforcing the plan on the ground. In such cases, the
+framework is most useful when it exposes the trade-off surface and identifies a
+set of defensible alternatives, rather than forcing all candidates into a
+single apparently objective ranking.
+
+The decision layer is intentionally simple, but that simplicity is useful for
+operational interpretation. Feasibility filtering, Pareto screening and
+weight-sensitivity analysis make the recommendation traceable: a rejected
+plan can be rejected because it is infeasible, because another plan dominates
+it, or because it only wins under a narrow set of weights. The framework
+therefore acts less as an automatic prescription tool and more as a structured
+decision-support tool that documents why a deviation plan is preferred.
 
 \subsection{Limitations}
 
-Several methodological and modelling choices restrict the scope of the conclusions that can be
-drawn from the current framework. The following limitations are grouped by the stage of the
-pipeline they affect and are discussed in terms of the threat they pose to internal and external
-validity.
+These contributions remain bounded by several methodological and modelling
+choices. The following limitations are grouped by the stage of the pipeline
+they affect and are discussed in terms of the threat they pose to internal and
+external validity.
 
 \subsubsection{Single-closure assumption}
 The deviation plan maker and the route rewriter are both designed around a single closed edge at a
@@ -77,8 +126,3 @@ framework does not adapt plans to the real-time traffic state: if a candidate de
 near saturation before the closure occurs, the plan generator has no mechanism to avoid it.
 A natural extension would integrate a live traffic data feed so that edge weights at plan
 generation time reflect current conditions rather than free-flow speeds.
-
-\subsection{Future work}
-\begin{bluenote}
-Present the most impactful next steps for the work.
-\end{bluenote}

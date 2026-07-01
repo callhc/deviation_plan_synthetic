@@ -11,7 +11,8 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{xltabular}
 \usepackage{array}
 \usepackage{enumitem}
 \usepackage{titlesec}
@@ -26,7 +27,7 @@
 \usepackage{csquotes}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xurl}
-\usepackage[backend=biber,style=numeric,sorting=nty]{biblatex}
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
 
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds,calc,decorations.pathreplacing}
 
@@ -38,26 +39,12 @@
 \setlist[itemize]{leftmargin=*,topsep=4pt,itemsep=2pt}
 \setlist[enumerate]{leftmargin=*,topsep=4pt,itemsep=2pt}
 
-\graphicspath{{pictures/}{chapters/introduction/pictures/}{chapters/methodology/pictures/}}
-
-\renewcommand{\sectionautorefname}{Section}
-\renewcommand{\subsectionautorefname}{Section}
-\renewcommand{\subsubsectionautorefname}{Section}
-\renewcommand{\paragraphautorefname}{Section}
-\renewcommand{\figureautorefname}{Figure}
-\renewcommand{\equationautorefname}{Equation}
-
-\newcommand{\thesisref}[1]{\textbf{\autoref{#1}}}
-\newcommand{\thesisurlfootnote}[1]{\footnote{\url{#1}}}
-
-\newenvironment{bluenote}{\begingroup\color{blue}}{\par\endgroup}
-\newenvironment{rednote}{\begingroup\color{red}}{\par\endgroup}
-\newenvironment{greennote}{\begingroup\color{ForestGreen}}{\par\endgroup}
+\graphicspath{{pictures/}{chapters/introduction/pictures/}{chapters/methodology/pictures/}{../visualisations/}}
 
 \newcommand{\missingassetbox}[1]{%
   \fbox{%
     \parbox[c][0.22\textheight][c]{0.82\linewidth}{%
-      \centering\ttfamily Missing asset:\\#1%
+      \centering\ttfamily Missing asset:\\\detokenize{#1}%
     }%
   }%
 }
@@ -66,7 +53,23 @@
   \IfFileExists{#2}{%
     \includegraphics[#1]{#2}%
   }{%
-    \missingassetbox{#2}%
+    \IfFileExists{pictures/#2}{%
+      \includegraphics[#1]{#2}%
+    }{%
+      \IfFileExists{chapters/introduction/pictures/#2}{%
+        \includegraphics[#1]{#2}%
+      }{%
+        \IfFileExists{chapters/methodology/pictures/#2}{%
+          \includegraphics[#1]{#2}%
+        }{%
+          \IfFileExists{../visualisations/#2}{%
+            \includegraphics[#1]{#2}%
+          }{%
+            \missingassetbox{#2}%
+          }%
+        }%
+      }%
+    }%
   }%
 }
 
@@ -97,25 +100,25 @@
 \pretocmd{\section}{\clearpage}{}{}
 
 \titleformat{\subsection}[block]
-  {\bfseries\fontsize{14.4}{17}\selectfont}
+  {\bfseries\fontsize{16}{19}\selectfont}
   {\thesubsection}
   {1em}
   {}
 \titlespacing*{\subsection}{0pt}{1.4em}{1.1em}
 
 \titleformat{\subsubsection}[block]
-  {\bfseries\fontsize{11}{13.2}\selectfont}
+  {\bfseries\fontsize{13}{15.5}\selectfont}
   {\thesubsubsection}
   {1em}
   {}
 \titlespacing*{\subsubsection}{0pt}{1.4em}{0.9em}
 
 \titleformat{\paragraph}[block]
-  {\bfseries\normalsize}
-  {\theparagraph}
-  {1em}
+  {\bfseries\itshape\normalsize}
+  {}
+  {0pt}
   {}
 \titlespacing*{\paragraph}{0pt}{1em}{0.5em}
 
-\setcounter{secnumdepth}{4}
+\setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{3}

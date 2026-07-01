@@ -1,14 +1,82 @@
 \subsection{System overview and pipeline}
+\label{ssec:Architecture}
 The methodology follows the same order as the implemented workflow. The first
 step generates a synthetic, network-aware demand from the SUMO road network
-and the TAZ layer. This demand is written as \texttt{trips.xml}: every trip
-has a departure time, an origin edge and a destination edge, while the full
-path is left open. The closure is then translated into candidate deviation
-plans. In the Monte Carlo stage, the same trip demand is routed repeatedly
-with \texttt{duarouter}\footnote{\href{https://sumo.dlr.de/docs/CLI.html}{https://sumo.dlr.de/docs/CLI.html}}, using randomized edge weights, before each deviation
-plan is applied and simulated in SUMO. The last step compares the plans using
-paired statistics and a multi-criteria decision rule. The pipeline is illustrated in
-\textbf{Figure \ref{fig:pipeline}}.
+and the Traffic Analysis Zone (TAZ) layer described in
+Section~\ref{ssec:stage_1_demand_generation}. This demand is written as
+\texttt{trips.xml}: every trip has a departure time, an origin edge and a
+destination edge, while the full path is left open. The closure is then
+translated into candidate deviation plans. In the Monte Carlo stage, the same
+trip demand is routed repeatedly with
+\texttt{duarouter},
+using randomized edge weights, before each deviation plan is applied and
+simulated in SUMO. The last step compares the plans using paired statistics
+and a multi-criteria decision rule. The functional organization of this
+workflow is summarized in Table~\ref{tab:functional_pipeline}, while
+Figure~\ref{fig:pipeline} shows the same pipeline as a data flow from inputs to
+final evaluation files.
+
+\subsubsection{Concepts and contribution boundary}
+
+The methods chapter combines standard transport concepts, external SUMO tools
+and code developed for this thesis. Table~\ref{tab:method_concepts} defines
+the main terms before the individual stages are described.
+
+\begin{longtable}{@{}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.72\linewidth}@{}}
+
+\toprule
+Term & Meaning in this thesis \\
+\midrule
+\endfirsthead
+
+\toprule
+Term & Meaning in this thesis \\
+\midrule
+\endhead
+
+\endfoot
+
+\bottomrule
+
+\caption{Key concepts used in the methodology and the boundary between reused
+methods/tools and thesis-specific implementation choices.}
+\label{tab:method_concepts}
+\endlastfoot
+
+SUMO & \emph{Simulation of Urban MObility}, the external microscopic traffic simulator used to execute the traffic runs. SUMO is used as a tool, not developed in this thesis. \\
+
+\texttt{duarouter}\footnotemark & SUMO's command-line router. It converts unrouted trips into explicit route files, this thesis uses its randomized edge-weight option to generate route-choice variation. \\
+
+TAZ & \emph{Traffic Analysis Zone}, a geographic zone used to aggregate origins and destinations before individual trips are instantiated on SUMO road edges. \\
+
+OD matrix & \emph{Origin-Destination} matrix. Entry $(i,j)$ gives the number or share of trips from origin zone $i$ to destination zone $j$. \\
+
+Gravity model \cite{gravity_model} & A standard demand-allocation model from transport planning. The thesis contribution is the synthetic implementation: zone-mass proxy, sampled TAZ-to-TAZ impedance and integer hourly OD matrices. \\
+
+Deviation plan & A candidate detour path around the closed edge or edge sequence. The plan objects and route-rewriting policy are implemented in this thesis. \\
+
+Baseline & The no-detour, no-closure condition for the same demand and Monte Carlo seed. Each candidate plan is compared with its paired baseline run. \\
+
+Monte Carlo run & One repeated simulation under a fixed trip set but a different routing seed and randomized edge-cost realization. \\
+
+BFS & \emph{Breadth-first search}, a standard graph search used here to find upstream candidate detour origins by hop depth. \\
+
+MCDA & \emph{Multi-criteria decision analysis}, the final ranking layer that combines time-loss delay, mean travel time and impacted-user delay after feasibility and Pareto screening. \\
+
+\end{longtable}
+\footnotetext{\url{https://sumo.dlr.de/docs/CLI.html}}
+
+The core contribution is therefore not a new traffic simulator, a new gravity
+model or a new shortest-path algorithm. It is the integration of these
+standard components into a reproducible pipeline that generates synthetic
+demand, computes candidate detours, applies those detours to route files and
+evaluates them across paired stochastic SUMO simulations.
+
+Table~\ref{tab:functional_pipeline} identifies the four implemented modules,
+their role in the workflow and the artifacts they write for the following
+stage. The table should be read as the functional view of the system: it
+explains what each module is responsible for before the following subsections
+describe the internal methods in more detail.
 
 \begin{table}[htbp]
 \centering
@@ -22,10 +90,16 @@ Module & Main role & Main outputs \\
 \texttt{evaluator} & Paired statistical analysis and multi-criteria ranking & \texttt{evaluation.json}, \texttt{evaluation.md} \\
 \bottomrule
 \end{tabularx}
-\caption{Functional organization of the pipeline}
+\caption{Functional organization of the pipeline.}
+\label{tab:functional_pipeline}
 \end{table}
 
-\begin{figure}[htbp]
+Figure~\ref{fig:pipeline} complements the table with the execution order. The
+dashed box contains the three inputs shared by the workflow, the vertical
+arrows show the order in which modules are executed and the side boxes show
+the main files produced along the way.
+
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[
   module/.style={
@@ -70,7 +144,8 @@ Module & Main role & Main outputs \\
   \draw[side] (mcs) -- (mcs_out);
   \draw[side] (ev)  -- (ev_out);
 \end{tikzpicture}
-\caption{Four-module pipeline. Inputs (dashed box) flow top-to-bottom through the four modules. The scenario generator writes unrouted trips; explicit route files are produced later inside each Monte Carlo iteration by \texttt{duarouter}.}
+\caption{Four-module pipeline. Inputs (dashed box) flow top-to-bottom through the four
+modules. The scenario generator writes unrouted trips, explicit route files are produced
+later inside each Monte Carlo iteration by duarouter.}
 \label{fig:pipeline}
 \end{figure}
-

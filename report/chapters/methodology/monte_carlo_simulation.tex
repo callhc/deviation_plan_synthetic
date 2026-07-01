@@ -8,6 +8,14 @@ unrouted \texttt{trips.xml} file and each Monte Carlo iteration routes that
 same trip set again with \texttt{duarouter}, a different seed and randomized
 edge weights.
 
+Here, a Monte Carlo run means one repetition of the same experiment under a
+different routing random seed. The baseline in each run is the route
+realization without applying any detour plan or closure treatment. Candidate
+plans are then applied to a copy of that same baseline route file. This paired
+design means that a plan is compared against the exact route-choice
+realization from which it was produced, rather than against an average from
+other seeds.
+
 \subsubsection{Experimental design}
 \label{sssec:mc_design}
 
@@ -23,11 +31,18 @@ baseline route file
   \label{eq:duarouter_run}
 \end{equation}
 where $G$ is the SUMO network and $\alpha$ is the upper bound passed to
-\texttt{--weights.random-factor}. With this option, \texttt{duarouter}
-perturbs edge costs by drawing multipliers in $[1,\alpha]$. Different
-iterations can produce different paths for the same trip endpoints.
+\path|--weights.random-factor|. With this option, \texttt{duarouter}
+perturbs edge costs by drawing multipliers in $[1,\alpha]$. This does not
+change the trip origin or destination, it changes only how attractive each
+road segment appears during route computation. In human terms, this represents
+a driver who still wants to reach the same destination but may slightly adapt
+the chosen path after observing or anticipating traffic on particular streets.
+Different iterations can therefore produce different paths for the same trip
+endpoints.
+Figure~\ref{fig:weights-random-factor} illustrates this mechanism on a small
+two-route graph.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[
   vx/.style={draw, circle, fill=blue!10, thick, minimum size=7mm,
@@ -84,7 +99,7 @@ is then applied to that same baseline route file. The baseline and all plan cond
 run: they share the same trip set, the same route realization before applying
 the closure treatment and the same SUMO seed.
 
-For each iteration $r$, the raw time-loss difference
+Meanwhile all available metrics are collected and saved for later evaluation. For each iteration $r$, the raw time-loss difference
 \begin{equation}
   \delta_k^{(r)} \;=\; D_k^{(r)} \;-\; D_0^{(r)}
   \label{eq:paired_delta}
@@ -117,10 +132,11 @@ are stored per run, since the affected vehicles can change when
 
 Each Monte Carlo iteration consists of routing, deterministic route rewriting,
 SUMO execution and metric extraction. Algorithm~\ref{alg:mc_iter} states the
-procedure formally, Figure~\ref{fig:mc-workflow} summarizes the workflow.
+procedure formally.
 
 \begin{algorithm}[htbp]
-\caption{\textsc{MonteCarloIteration}}\label{alg:mc_iter}
+\caption{Pseudocode for one \textsc{MonteCarloIteration}, including routing,
+route rewriting, SUMO execution and metric extraction.}\label{alg:mc_iter}
 \begin{algorithmic}[1]
 \Require network file $G$,
          trip file $\mathcal{T}$,
@@ -158,7 +174,10 @@ the metrics of Section~\ref{sssec:mc_metrics}. Each condition runs in its own
 subdirectory (\texttt{run\_r/baseline/}, \texttt{run\_r/plan\_k/}), keeping
 outputs isolated.
 
-\begin{figure}[htbp]
+Figure~\ref{fig:mc-workflow} summarizes the same iteration as a data flow from
+fixed inputs to per-run baseline and plan outputs.
+
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[
   data/.style={draw, dashed, rounded corners=4pt, fill=orange!7, thick,
@@ -214,6 +233,12 @@ condition $c$ and run $r$. SUMO is configured with
 \texttt{tripinfo-output.write-unfinished}, so completed trips can be separated
 from unfinished or vaporized records. Aggregate performance is computed only
 on completed trips. The unfinished count is kept as a diagnostic.
+
+Time-loss delay is the primary network-efficiency metric, but it is not the
+only assessment criterion. The Monte Carlo stage stores time-loss delay, mean
+travel time, completed trips, unfinished trips and the number of vehicles whose
+route changed after applying a plan. The evaluator then derives additional
+impacted-user metrics from the route and \texttt{tripinfo.xml} files.
 
 \begin{itemize}
   \item \textbf{Total time-loss delay} $D$ (vehicle-hours): the sum of

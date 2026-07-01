@@ -6,22 +6,25 @@
 \label{dt_traffic_simulation}
 
 A traffic digital twin is useful here less as a real-time control system than as a planning
-environment in which a road manager can ask a concrete counterfactual question: what happens if a
-road segment is closed and traffic is assigned to one of several deviation plans? The literature on
+environment in which a road manager can ask a concrete counterfactual question: \emph{what happens if a
+road segment is closed and traffic is assigned to one of several deviation plans?} The literature on
 digital twins for mobility emphasizes this ability to reproduce a road network, ingest transport
 data, simulate alternative scenarios and support decision making before actions are deployed in the
-physical network \cite{data_mining_dt,intelligent_transport}. This thesis uses that same
+physical network \cite{data_mining_dt,intelligent_transport,digital_twin_transport}.
+This thesis uses that same
 decision-support idea, but it implements it as an offline experimental pipeline rather than as a
 continuously synchronized operational twin.
 
-The implemented system therefore separates the physical city from the experimental model. The
-physical layer is represented by a SUMO road network and traffic analysis zones, the scenario layer
-generates synthetic, network-aware origin-destination demand, the planning layer converts a selected
-closure into candidate detour paths and the evaluation layer simulates and ranks those candidates.
-This is narrower than a full urban digital twin with live sensor ingestion, privacy-sensitive
-trajectory mining and low-latency feedback loops. Those capabilities are important in operational
-ITS deployments \cite{data_mining_dt,intelligent_transport}, but the contribution of this work is
-the reproducible comparison of deviation policies under controlled assumptions.
+The framework developed in this thesis therefore separates the physical city from the 
+experimental model used for plan comparison. The physical layer is represented by a SUMO 
+road network and traffic analysis zones, the scenario layer generates synthetic, network-aware 
+origin-destination demand, the planning layer converts a selected closure into candidate detour 
+paths and the evaluation layer simulates and ranks those candidates. In this sense, the framework 
+should be understood as an offline decision-support tool rather than as a fully operational 
+traffic-management digital twin. It does not continuously ingest live sensor data or maintain 
+a real-time estimate of the current traffic state. Its contribution lies instead in enabling the 
+reproducible comparison of deviation policies under controlled assumptions.
+
 
 The result is a decision-support digital twin prototype for roadwork planning. Its purpose is not to
 predict the exact state of Brussels traffic at a particular minute. Instead, it provides a
@@ -30,6 +33,17 @@ vehicle time loss, travel time and the number of affected users. This framing is
 roadwork decisions are often made before the disruption occurs. The planner needs evidence about
 candidate plans, not only a live dashboard after congestion has already formed.
 
+This scope follows from the exploratory work carried out before the present implementation. Several
+digital-twin approaches were considered: broad smart-city twins that integrate many urban systems,
+operational traffic twins that continuously assimilate sensor data, SUMO-based twins focused on
+traffic simulation and \textit{TrafficTwin}, an earlier interactive prototype for deviation-plan
+assessment \cite{smart_city,digital_twin_transport,sumo_twin,SIM_param}. TrafficTwin is the closest
+predecessor because it already frames a closure as a planning problem and lets a user inspect the
+impact of a deviation plan. The difference is that this thesis turns that idea into a reproducible
+experimental pipeline: demand generation, candidate-plan generation, stochastic re-routing,
+simulation, statistical comparison and multi-criteria ranking are explicit stages rather than
+manual or single-run interactions.
+
 \subsubsection{Simulation and mobility}
 
 Traffic simulation is the mechanism that turns the digital-twin idea into an experiment. The common
@@ -37,18 +51,32 @@ theme across simulation-based traffic studies is that a proposed intervention ca
 controlled environment before it is implemented on the road. Prior work uses this principle for
 adaptive signal control, co-simulation and AI-based traffic management
 \cite{ai_driven_simulation,cosimulation,traffic_light_simulation}. Those studies are useful
-background, but their intervention is different from the one studied here. This thesis does not
-learn traffic-light policies or run multiple simulators together. It evaluates fixed road-closure
-responses.
+background, but they usually use simulation to design or assess systems that adapt during
+operation, for example a controller that changes signal phases or an AI method that learns traffic-management actions.
+The intervention studied here is different. The closure and candidate detour policies are defined
+before the simulation runs and simulation is used to measure how each planned response affects
+delay, travel time and impacted users.
+
+Another related line of work concerns real-time route recommendations from navigation applications
+such as Google Maps\footnote{\url{https://www.google.com/maps/}} and Waze\footnote{\url{https://www.waze.com/}}. 
+Scientific studies of online routing use these services as examples
+of systems that can redirect demand dynamically and, if many users react to similar information, can
+also create network-level effects that differ from a system optimum
+\cite{jalota_online_routing_2021,toso_route_recommendations_2023}. This literature is relevant
+because it treats routing guidance as an intervention on traffic flow. The present thesis differs
+from it in both time scale and control objective: it does not provide live individualized advice to
+drivers, but evaluates planned deviation policies offline before a roadwork is deployed.
 
 The simulation problem addressed here has three practical requirements. First, the same demand must
 be reused across alternatives so that candidate plans are compared on equal terms. Second, the
-route assignment must be allowed to vary from run to run, because different drivers can perceive
-different costs and choose different paths. Third, the final recommendation must combine several
-outputs, since a plan that reduces one metric may worsen another. The pipeline answers these
-requirements by generating one reproducible \texttt{trips.xml}, repeatedly routing it with
-\texttt{duarouter}, rewriting affected routes according to each candidate plan and evaluating all
-conditions with paired statistics and multi-criteria ranking.
+experiment should test the sensitivity of plan rankings to plausible route-choice dispersion.
+Traffic assignment theory distinguishes deterministic shortest-path or user-equilibrium assignment
+from stochastic formulations in which travellers choose between alternatives according to perceived
+generalized costs rather than a single perfectly observed cost \cite{modelling_transport}.
+Third, the final recommendation must combine several outputs, since a plan that reduces one metric
+may worsen another. For example, a detour can reduce queueing and time loss near the closed edge by
+spreading traffic over alternative roads, while also increasing the mean travel time of affected
+vehicles because they are sent through a longer path.
 
 In this setting, simulation is not used only for visualization. It is the measurement instrument of
 the thesis. The output of each SUMO run is parsed into quantitative indicators and the evaluator
@@ -57,25 +85,37 @@ robust for the selected closure.
 
 \subsubsection{Positioning of this work}
 
-This thesis is positioned between three existing lines of work. The first is SUMO-based traffic
-model construction, where tutorials and case studies explain how road networks, demand and
-simulation files can be assembled for urban experiments \cite{sumo_tutorial,sparse_data_SUMO}. The
-second is digital-twin research for transport, which motivates using simulation models to support
-planning decisions in complex road networks \cite{intelligent_transport,digital_twin_transport}.
-The third is \textit{TrafficTwin}, an earlier interactive tool for designing and evaluating
-deviation plans \cite{SIM_param}.
+The problem addressed in this thesis is narrower than building a complete platform for traffic
+management. The practical question is: \emph{if a road edge is closed, how can several candidate deviation
+plans be compared before the closure is deployed?}. Existing work provides useful pieces of that
+answer. SUMO studies explain how to build reproducible simulation scenarios from a road network and
+demand data \cite{sumo_tutorial,sparse_data_SUMO}. Transport digital-twin research motivates the
+use of simulation models to test planning decisions before acting on the physical network
+\cite{intelligent_transport,digital_twin_transport}. Online routing studies show that routing
+guidance can change network flows, although they usually study live advice to individual drivers
+rather than planned roadwork policies \cite{jalota_online_routing_2021,toso_route_recommendations_2023}.
+At the tool level, \textit{TrafficTwin} is the closest predecessor because it already treats a road
+closure as a deviation-plan assessment problem \cite{SIM_param}.
 
-The present project does not attempt to build a complete real-time Brussels twin. It contributes a
-specific experimental framework around deviation plans. The framework includes a synthetic demand
-generator, automatic candidate-plan generation, Monte Carlo simulation with stochastic routing and a
-multi-criteria evaluator. This scope matches the practical decision facing an urban planner: given a
-closed road edge and a set of feasible detours, compare the alternatives in a way that is
-reproducible, statistically aware and explainable.
+The contribution of this thesis is to connect these ideas into one reproducible evaluation
+pipeline. More specifically, it generates synthetic demand for a SUMO network, constructs candidate
+detours around a selected closure, rewrites affected routes, reruns the same scenario under
+stochastic routing assumptions and ranks the resulting plans with paired statistics and
+multi-criteria decision analysis. The emphasis is therefore not on a new simulator or a real-time
+routing service, but on a transparent workflow for comparing roadwork deviation policies under the
+same experimental conditions.
 
 \subsection{Traffic simulation tools}
-Traffic congestion is one of the major challenges faced by modern cities and is expected to get worse with increasing population and vehicle usage \cite{increasing_traffic} \cite{increasing_cars}. Traffic simulation tools have been developed as mathematical and computational models that replicate real-world traffic behavior and dynamics \cite{TST_def}. These tools help transportation planners and engineers to optimize road networks designs or estimate traffic-related emissions.
+\subsubsection{Purpose of traffic simulation tools}
+Traffic congestion is one of the major challenges faced by modern cities and is expected to get
+worse with increasing population and vehicle usage \cite{increasing_traffic,increasing_cars}.
+Traffic simulation tools such as SUMO\footnote{\url{https://sumo.dlr.de/}}, Vissim\footnote{\url{https://www.ptvgroup.com/en/products/ptv-vissim/}}, Aimsun\footnote{\url{https://www.aimsun.com/}}, or CityFlow\footnote{\url{https://cityflow-project.github.io/cityflow/}} are mathematical and computational models used to represent traffic
+dynamics, test network designs and estimate operational or environmental effects before an
+intervention is implemented \cite{modelling_transport,SUMO_sumo}.
 
-Traffic simulations are commonly categorized into three main types based on the level of detail desired \cite{TST_types}:
+\subsubsection{Levels of detail in traffic simulation}
+Traffic simulations are commonly categorized into three main types based on the level of detail
+desired \cite{modelling_transport,SUMO_sumo}:
 \begin{enumerate} 
     \item \textbf{Microscopic Simulation}: Models each traffic participant (e.g., vehicles, pedestrians) individually. Agents continuously in time and space respond to their immediate environment. The global traffic dynamics is the result of the sum of these individual decisions and behaviors.
     \item \textbf{Mesoscopic Simulation}: Still represents individual agents, but their behavior is determined by average traffic conditions like speed or density. Agents only interact directly at key points in the network, such as intersections.
@@ -83,16 +123,9 @@ Traffic simulations are commonly categorized into three main types based on the 
 \end{enumerate}
 Choosing a simulation type entails balancing computational cost and realism. For instance, microscopic simulation is ideal for projects that require modeling of individual behaviors or the testing of interventions at the street or intersection level, which is often necessary for a dense urban environment such as Brussels. In contrast, a macroscopic simulation might suffice for citywide traffic forecasting or strategic planning, where the focus is on broader patterns rather than local details.
 
-\subsubsection{SUMO}
+\subsubsection{SUMO as the selected microscopic simulator}
 \textbf{SUMO} (Simulation of Urban MObility) is an open-source, highly portable, microscopic and continuous mutli-modal traffic simulation tool. It allows detailed modeling of individual vehicles, each following its own route through a specified road network. As a microscopic simulator, SUMO treats every vehicle as an individual entity with specific behaviors and interactions. The tool is multi-modal enabling the simulation of diverse traffic participants including cars, public transport vehicles and pedestrians 
 \cite{SUMO_eclipse} \cite{SUMO_homepage} \cite{SUMO_doc_glance}. 
-
-SUMO provides some tools to setup the simulation and managing the data of the road network \cite{SUMO_eclipse} \cite{SUMO_doc_glance}. In this project, the following components of the SUMO ecosystem are particularly relevant:
-\begin{itemize}
-    \item \texttt{sumo} : Executes command-line-based microscopic traffic simulations without graphical visualization.
-    \item \texttt{netconvert} : Imports and converts road network data from various formats into the internal SUMO network format.
-    \item \texttt{duarouter} : Computes optimal routes across the network based on demand inputs and performs Dynamic User Assignment (DUA).
-\end{itemize}
 
 SUMO has been used extensively to model real-world traffic systems in diverse urban contexts, including cities such as Berlin, Dublin and Turin \cite{SUMO_scenarios}. Each scenario adapts to the specific traffic dynamics and urban characteristics of its location : 
 \begin{enumerate}
@@ -103,12 +136,17 @@ SUMO has been used extensively to model real-world traffic systems in diverse ur
     \item \textbf{Turin:} Leveraging real-world data, the TuSTScenario \cite{turin_scenario} provides a highly detailed SUMO-based simulation of metropolitan Turin, covering over $602.61km^2$. The model integrates structural road information from OpenStreetMap, validated average speeds from Google APIs, actual traffic light programming and real trip demands from local mobility services. With more than 2.2 million simulated daily trips and validated against city sensor data, this scenario enables realistic studies of urban traffic dynamics and congestion patterns.
 \end{enumerate}
 
-\textbf{Brussels} is also a large city warranting similarly large-scale simulations. However, the focus of this study is distinct: rather than prioritizing multi-modal integration or CAV impact, we specifically investigate the planning and management of roadworks within the Brussels network. The goal is to demonstrate how such interventions can be realistically modeled, analyzed, and optimized in SUMO for modern urban infrastructure management.
+\textbf{Brussels} is also a large city warranting similarly large-scale simulations. However, the focus of this study is distinct: rather than prioritizing multi-modal integration or CAV impact, we specifically investigate the planning and management of roadworks within the Brussels network. The goal is to demonstrate how such interventions can be realistically modeled, analyzed and optimized in SUMO for modern urban infrastructure management.
 
 
-Beyond traditional traffic flow analysis SUMO has been used to evaluate the effects of technologies like virtual traffic lights communication systems where cars directly communicate with each other. \cite{SUMO_VTL} This study showed that replacing traffic lights with with virtual ones can reduce both congestion and the likelihood of traffic accidents.  Moreover SUMO can be used in environmental research, for instance in assessing the impact of traffic-related emissions on urban air quality. In such cases traffic flows are generated from sensor data to estimate real-world emission patterns \cite{SUMO_emission}. 
+SUMO has been used to evaluate the effects of technologies like virtual traffic lights communication systems where cars directly communicate with each other. \cite{SUMO_VTL} In this study, Tonguz found that virtual traffic lights could reduce congestion and the likelihood of traffic accidents.  Moreover SUMO can be used in environmental research, for instance in assessing the impact of traffic-related emissions on urban air quality. In such cases traffic flows are generated from sensor data to estimate real-world emission patterns \cite{SUMO_emission}. 
 
-One of the strengths of SUMO is its deterministic core which allows reproducibility of experiments. However, this deterministic nature can be a limitation when it comes to capturing the variability in human driving behavior which requires the integration of stochastic elements \cite{SUMO_sumo}.
+SUMO runs can be made reproducible when the same version, input files, command-line options and
+random seed are used. This is useful for controlled experiments because differences between
+scenarios can be traced to the tested intervention rather than to uncontrolled simulation changes.
+However, one fixed run only represents one possible realization of traffic behavior. Capturing
+variability in route choice and driving behavior therefore requires stochastic mechanisms and
+repeated simulations with different seeds \cite{SUMO_sumo,sumo_randomness}.
 
 
 
@@ -117,38 +155,38 @@ One of the strengths of SUMO is its deterministic core which allows reproducibil
 Several other traffic simulation tools can serve as alternatives to SUMO, each with different features, advantages and limitations : 
 
 \begin{enumerate}
-    \item PTV Vissim \footnote{\url{https://www.ptvgroup.com/en/products/ptv-vissim}} : PTV-Vissim  is a widely used microscopic traffic simulation software that also supports multi-modal transport systems. It offers a broad set of features comparable to those of SUMO. However, it is a proprietary tool that requires a commercial license, which can restrict its accessibility and limit the ability to implement custom modifications at the code level.
-    \item Aimsun\footnote{\url{https://docs.aimsun.com/}} : Aimsun is a commercial traffic simulation platform that supports microscopic, mesoscopic, and macroscopic modeling. While it is used in various contexts, its commercial nature introduces licensing costs and reduces flexibility for developers who require deeper code-level access and customization.
-    \item CityFlow \cite{cityflow} : CityFlow is an open-source microscopic simulator designed for efficient, large-scale urban traffic simulations, capable of handling thousands of intersections with high computational efficiency. Its architecture is highly optimized for speed and parallel execution, making it over twenty times faster than SUMO in large-scale benchmarks \cite{cityflow_rl}. CityFlow is particularly popular in the field of artificial intelligence and reinforcement learning, serving as a benchmark for multi-agent adaptive traffic signal control and dynamic routing tasks. However, CityFlow remains limited compared to SUMO in certain areas: it offers fewer out-of-the-box features for conventional traffic simulation, has a less mature ecosystem, and does not natively support the simulation of public transportation modes such as buses, trams, or trains, which restricts its suitability for comprehensive, multi-modal urban simulations.
+    \item PTV-Vissim  is a widely used microscopic traffic simulation software that also supports multi-modal transport systems. It offers a broad set of features comparable to those of SUMO. However, it is a proprietary tool that requires a commercial license, which can restrict its accessibility and limit the ability to implement custom modifications at the code level.
+    \item Aimsun is a commercial traffic simulation platform that supports microscopic, mesoscopic and macroscopic modeling. While it is used in various contexts, its commercial nature introduces licensing costs and reduces flexibility for developers who require deeper code-level access and customization.
+    \item CityFlow \cite{cityflow} is an open-source microscopic simulator designed for efficient, large-scale urban traffic simulations, capable of handling thousands of intersections with high computational efficiency. Its architecture is highly optimized for speed and parallel execution, making it over twenty times faster than SUMO in large-scale benchmarks \cite{cityflow_rl}. CityFlow is particularly popular in the field of artificial intelligence and reinforcement learning, serving as a benchmark for multi-agent adaptive traffic signal control and dynamic routing tasks. However, CityFlow remains limited compared to SUMO in certain areas: it offers fewer out-of-the-box features for conventional traffic simulation, has a less mature ecosystem and does not natively support the simulation of public transportation modes such as buses, trams, or trains, which restricts its suitability for comprehensive, multi-modal urban simulations.
 \end{enumerate}
 
-\subsubsection{Why prefer SUMO}
+\subsubsection{Choice of SUMO for this thesis}
 SUMO was selected for this project based on the following criteria:
 \begin{itemize}
-    \item \textbf{Open-source} : SUMO’s open-source status allows users to freely modify, adapt, and extend the software, making it suitable for research and academic use where flexibility and transparency are important. This degree of code-level access is not available in proprietary tools like PTV Vissim or Aimsun.
+    \item \textbf{Open-source} : SUMO’s open-source status allows users to freely modify, adapt and extend the software, making it suitable for research and academic use where flexibility and transparency are important. This degree of code-level access is not available in proprietary tools like PTV Vissim or Aimsun.
     \item \textbf{Community and documentation} : SUMO benefits from a large active community that contributes regularly to new features or bug fixes. In addition, it offers extensive documentation and a wide range of tutorials, which significantly lower the learning curve for new users.
-    \item \textbf{Microscopic and multi-modal simulation} : SUMO provides detailed agent-based (microscopic) modeling of cars, public transport, and pedestrians. While other simulators such as Vissim and Aimsun also support microscopic and multi-modal simulation, SUMO’s implementation is open, which enables deeper customization and integration for research needs.
-    \item \textbf{Integration and flexibility} : SUMO's design and command-line tools (like \texttt{netconvert} and \texttt{duarouter}) facilitates working on various data sources making it easy to connect with external components.
+    \item \textbf{Microscopic and multi-modal simulation} : SUMO provides detailed agent-based (microscopic) modeling of cars, public transport and pedestrians. While other simulators such as Vissim and Aimsun also support microscopic and multi-modal simulation, SUMO’s implementation is open, which enables deeper customization and integration for research needs.
+    \item \textbf{Integration and flexibility} :\\ SUMO's design and command-line tools (like \texttt{netconvert} and \texttt{duarouter}) facilitates working on various data sources making it easy to connect with external components.
 \end{itemize}
 
-Commercial tools like PTV Vissim and Aimsun offer advanced graphical user interfaces and support; however, their proprietary nature limits customizability and long-term usability in research settings. CityFlow, while open-source and scalable, lacks SUMO’s extensive documentation and wider range of traffic simulation features relevant for this project’s objectives.
+Commercial tools like PTV Vissim and Aimsun offer advanced graphical user interfaces and support, however, their proprietary nature limits customizability and long-term usability in research settings. CityFlow, while open-source and scalable, lacks SUMO’s extensive documentation and wider range of traffic simulation features relevant for this project’s objectives.
 
 \subsection{Stochastic simulation}
 
 In a traffic-management digital twin, uncertainty is part of the phenomenon being modeled rather
 than a secondary implementation detail. Traffic demand, vehicle insertion, lane changing, speed
-preferences, and route choices all contain stochastic components, and small changes in these
+preferences and route choices all contain stochastic components and small changes in these
 components can propagate into visibly different congestion patterns
-\cite{digital_twin_transport,flow_twin,stochastic_macroscopic}. The Federal Highway Administration (FHWA) therefore recommends that
+\cite{digital_twin_transport,flow_twin,sumo_randomness,fhwa_microsim_2019}. In the United States, the Federal Highway Administration (FHWA) therefore recommends that
 microsimulation alternatives be evaluated with multiple random seeds because stochastic model
 variation can affect the statistical validity of observed differences between alternatives
 \cite{fhwa_microsim_2019}.
 
 Stochastic simulation treats selected inputs or model mechanisms as random variables and observes
-the distribution of outcomes over repeated replications \cite{application_stochastic_risk}. For
+the distribution of outcomes over repeated replications \cite{law_kelton,number_of_runs_traffic}. For
 this work, the decision output is therefore not a single deterministic delay value for each plan,
 but a set of paired delay, travel-time and impacted-user observations across simulation seeds.
-The evaluator uses these observations to estimate means, confidence intervals, and ranking
+The evaluator uses these observations to estimate means, confidence intervals and ranking
 robustness.
 
 \subsubsection{Theoretical foundations of the Monte Carlo method}
@@ -175,15 +213,24 @@ where $t_{0.975,n-1}$ is the Student-$t$ critical value. This is the form used i
 microsimulation guidance \cite{law_kelton,txdot_number_runs}.
 
 \textbf{Paired design for plan comparison.} A deviation plan and its baseline are compared under
-the same seed whenever possible. This paired design controls for seed-specific variation in demand
-realization and driver behavior: the estimator is applied to
+the same seed whenever possible. In simple terms, this means that the plan and the baseline are
+tested on the same simulated \textit{traffic day}: the same random seed is used so that random effects
+such as vehicle insertion times or route-choice perturbations are aligned as much as possible. This
+matters because some seeds naturally create easier or harder traffic conditions. If a baseline run
+uses an easy seed and a deviation-plan run uses a difficult seed, the observed difference may come
+from the random draw rather than from the plan itself.
+
+The paired design therefore compares each plan run only with the baseline run that uses the same
+seed. The estimator is applied to the run-by-run difference
 \[
   \Delta^{(r)} = X_{\text{plan}}^{(r)} - X_{\text{baseline}}^{(r)}
 \]
-rather than to two unrelated samples. Preserving the run-by-run difference is especially important
-when the random seed affects vehicle insertion or behavioral choices in both scenarios. The paired
-series is then summarized with the same confidence-interval machinery used for other stochastic
-simulation outputs.
+rather than to two unrelated samples. Here, $X$ can be a metric such as delay or mean travel time,
+and $\Delta^{(r)}$ asks a direct question for seed $r$: \emph{how much did the plan change the metric
+relative to the comparable baseline?}. Preserving this run-by-run difference removes part of the
+noise caused by random simulation conditions and leaves a clearer estimate of the plan effect. The
+paired series is then summarized with the same confidence-interval machinery used for other
+stochastic simulation outputs.
 
 \subsubsection{Randomness in microscopic traffic simulation}
 
@@ -203,34 +250,34 @@ prevents unrealistically synchronized departures and better represents variable 
 
 \subsubsection{Determining the number of simulation runs}
 
-The required number of replications depends on output variability and the precision required by
-the decision. The Texas Department of Transportation's (TxDOT) microsimulation procedures, following FHWA guidance, state that random seeds
-represent natural variation in driver behavior and vehicle entry, and that the number of runs
-should be large enough that an atypical run has limited effect on the sample average
-\cite{txdot_number_runs, fhwa_microsim_2019}.
+Choosing the number of simulation runs is difficult because the required number is not known in advance. It depends on the variability of the network, the metric studied, the desired precision and the performance gap between candidate plans. Stable networks or clearly separated alternatives may require only a few replications, whereas saturated networks or closely performing plans may require many more runs to obtain a reliable ranking.
 
-In this thesis, the run count is treated as a precision-control choice rather than a universal
-constant. A small number of runs may be enough when demand is stable and candidate plans are
-clearly separated. More runs are needed when congestion is saturated or when the best plans have
-similar mean performance. The implementation therefore keeps all paired per-run observations, so
-that convergence plots and confidence intervals can be inspected after the simulations and the run
-budget can be extended when the recommendation is still unstable.
+The number of runs is therefore a methodological choice rather than a fixed property of traffic microsimulation. Existing guidance treats repeated random seeds as a way to capture stochastic variation and make uncertainty visible \cite{number_of_runs_traffic,fhwa_microsim_2019,txdot_number_runs}. The goal is not to identify a universal run count, but to relate the run budget to the uncertainty remaining in the outputs.
+
+In this thesis, the run count is treated as a precision-control choice rather than a
+universal constant. A small number of runs may be enough when demand is stable and
+candidate plans are clearly separated. More runs are needed when congestion is saturated
+or when the best plans have similar mean performance. The implementation therefore
+keeps all paired per-run observations, so that convergence plots and confidence intervals
+can be inspected after the simulations and the run budget can be extended when the
+recommendation is still unstable
+
 
 \subsection{Multiple-criteria decision analysis}
 
 Multiple-criteria decision analysis (MCDA) supports decisions where alternatives must be evaluated
-on several criteria that are not naturally reducible to one physical unit. The UK government's
-MCDA manual describes this as a framework for appraising policy and project options when monetary
-valuation alone is insufficient. It emphasizes explicit criteria, explicit scores, explicit
-weights and transparent judgement \cite{mcda_manual}.
-This is exactly the structure of deviation-plan evaluation: network delay, mean travel time,
+on several criteria that are not naturally reducible to one physical unit. In applied MCDA, the
+decision process is made explicit by defining criteria, assigning scores, choosing weights and
+showing how these elements produce a ranking \cite{mcda_manual}. This reference is used here for
+that methodological structure, not as evidence about traffic behavior. The same structure fits
+deviation-plan evaluation: network delay, mean travel time,
 throughput feasibility and impacted-user burden are all relevant, but they do not express the same
 dimension of performance.
 
-MCDA is not used here to hide the trade-off inside one unexplained number. Instead, it is used to
-make the decision rule auditable. The evaluator first removes infeasible or dominated alternatives,
-then ranks the remaining plans with an additive score and finally tests whether the ranking is
-sensitive to the chosen weights.
+In this thesis, MCDA is not used to hide the trade-off inside one unexplained number. Instead, it is
+used to make the decision rule auditable. The evaluator first removes infeasible or dominated
+alternatives, then ranks the remaining plans with an additive score and finally tests whether the
+ranking is sensitive to the chosen weights.
 
 \subsubsection{Pareto dominance and non-dominated plan sets}
 
@@ -253,7 +300,7 @@ a common scale. The overall score of alternative $k$ is then computed as
 \begin{equation}
   S_k = \sum_q w_q z_{kq},
 \end{equation}
-where $z_{kq}$ is the scaled performance of alternative $k$ on criterion $q$, and $w_q$ is the
+where $z_{kq}$ is the scaled performance of alternative $k$ on criterion $q$ and $w_q$ is the
 weight assigned to that criterion. The weights are non-negative and usually sum to one.
 
 This approach is valued for its transparency: the final ranking follows directly from the selected
@@ -264,11 +311,13 @@ another.
 
 \subsubsection{Weight sensitivity and robustness analysis}
 
-The main limitation of additive scoring is that weights encode value judgements. Sensitivity
-analysis is therefore part of the decision method, not an optional afterthought.
-Triantaphyllou and Sanchez similarly frame sensitivity analysis as a way to examine changes in
-criteria weights and alternative performance values for deterministic MCDM methods, including the
-weighted sum model \cite{triantaphyllou_sensitivity_1997}.
+The main limitation of additive scoring is that the weights are not measured by the simulator.
+They express a value judgement about what the decision maker considers more important. For
+example, after all metrics have been normalized, assigning a larger weight to network delay than
+to impacted-user burden means that the evaluation is allowed to prefer a plan that saves more
+overall delay even if it affects more individual users. Another planner could reasonably make the
+opposite choice. The same simulation outputs can therefore lead to different rankings if the
+priorities are different. \cite{triantaphyllou_sensitivity_1997}.
 
 In this work, weight robustness is estimated by drawing many admissible weight vectors from the
 simplex and recomputing the ranking. The sampling distribution is Dirichlet$(1,\ldots,1)$, which is

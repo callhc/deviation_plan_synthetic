@@ -10,6 +10,13 @@ experiment: for each Monte Carlo seed, the evaluator has one baseline result
 and one result for each candidate deviation plan. Each plan is compared
 against the baseline from the same run, not against an unrelated average.
 
+The assessment is deliberately multi-metric. Total time-loss delay is treated
+as the primary network-efficiency metric, but it is not the only criterion
+used to judge a plan. Mean travel time, completed-trip feasibility and
+impacted-user delay are all kept in the evaluation, and the final ranking is
+produced by a multi-criteria decision analysis (MCDA) layer rather than by a
+single time-loss number.
+
 In practice, the evaluation is organised around three questions:
 \begin{itemize}
   \item How much each plan changes the network-level performance compared with the baseline.
@@ -203,7 +210,9 @@ of directly affected users experiences a travel-time increase.
 \subsubsection{Multi-criteria decision analysis}
 \label{sssec:evaluator_mcda}
 
-The final ranking is built in three steps. First, infeasible plans are removed
+The final ranking is built in three steps, following the general MCDA idea of
+making criteria and weights explicit rather than hiding them in an implicit
+single score \cite{mcda_manual}. First, infeasible plans are removed
 by the completed-trip gate of Section~\ref{sssec:evaluator_feasibility}.
 Second, the remaining plans are screened for Pareto dominance using three cost
 criteria:
