@@ -30,7 +30,7 @@ also expose whether the recommendation is robust. For the manual plans, the
 ranking is unambiguous because \texttt{plan\_1} dominates
 \texttt{plan\_2}. For the Yen and upstream candidates, the results show a
 more realistic decision problem: the best time-based plan is not always the
-best plan on the fraction of impacted users delayed, so the preferred option depends on how the
+best plan on the congestion proxy, so the preferred option depends on how the
 decision maker weights the criteria.
 
 This is an important implication of using a Pareto-based decision layer. When
@@ -68,21 +68,14 @@ they affect and are discussed in terms of the threat they pose to internal and
 external validity.
 
 \subsubsection{Single-closure assumption}
-The deviation plan maker and the route rewriter are designed around a single closure at a time.
-The closure itself may span several edges: the Delta experiment blocks a contiguous set of three
-carriageways and the endpoint computation extends that set further upstream and downstream
-whenever the immediate junctions admit no diverging movement, so a worksite covering a corridor
-or a whole junction is already within scope. What the framework does not support is more than one
-closure being active simultaneously in different parts of the network, which is common when
-several worksites are scheduled in the same period or when an incident closes a link while planned
-works are already under way. Running the pipeline twice for two disjoint closures produces two
-plans that are each optimal in isolation but may conflict when applied together, for instance
-because both divert traffic onto the same corridor or because the detour of one closure passes
-through the other. Supporting this case requires more than enlarging the blocked-edge set: the
-candidate generation would have to reason about a blocked set that is itself the union of several
-disruptions, and the evaluation would have to attribute the resulting delay to the interaction
-between the plans rather than to either of them alone. That attribution problem, rather than the
-implementation, is what needs to be studied first.
+The deviation plan maker and the route rewriter are both designed around a single closed edge at a
+time. In practice, roadworks often affect a contiguous segment spanning several edges or a whole
+junction and emergency closures occasionally create simultaneous disruptions in different parts of
+the network. The current framework does not support overlapping or cascading closures: running
+the pipeline twice for two independent edges produces plans that are optimal in isolation but may
+conflict spatially when applied together. Extending the blocked-edge set to a multi-edge closure
+is technically straightforward, but the interaction between concurrent detour plans (which
+detour plan causes what effects) needs to be studied. 
 
 \subsubsection{No intra-zone demand}
 Demand is synthesised from TAZ-level OD matrices, which by construction assign all trip origins
@@ -102,6 +95,14 @@ bucket, the simulated traffic loading during the closure is an average over the 
 than a realistic second-by-second profile. This can cause the MC evaluation to underestimate
 peak-period congestion on detour corridors, which in turn biases the incremental delay estimates
 downward for high-density time windows.
+
+\subsubsection{Synthetic network only}
+All presented results come from the \emph{city\_tiny} procedurally generated network. Because
+the network topology, TAZ layout and demand profile are artificial, the absolute numbers reported
+(vehicle-hours of delay, phi\_net values) cannot be interpreted as predictions for any real city.
+The framework's correctness is demonstrated on a controlled, reproducible test case, but
+generalization to real urban networks requires validation against observed data from an actual
+closure event.
 
 \subsubsection{Demand fixed across Monte Carlo runs}
 Stochasticity in the Monte Carlo loop enters exclusively through duarouter's randomised edge

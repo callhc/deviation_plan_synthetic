@@ -27,15 +27,15 @@ closed edges $E_c \subset E$ and a blocked set $B \supseteq E_c$, a
 \end{equation}
 where $s \in V$ is the \emph{origin} of this particular plan (the junction
 at which the detour begins) and $t \in V$ is the detour target, while
-$P = (a_1, \ldots, a_{|P|})$ is a loopless path in $G' = (V,\, E \setminus B)$
-from $s$ to $t$ and $\ell(P) = \sum_{i=1}^{|P|} \ell(a_i)$ is its total
+$P = (e_1, \ldots, e_m)$ is a loopless path in $G' = (V,\, E \setminus B)$
+from $s$ to $t$ and $\ell(P) = \sum_{i=1}^{m} \ell(e_i)$ is its total
 geometric length in meters. The integer $d \in \mathbb{N}_0$ is the
 \emph{breadth-first search (BFS) depth} of $s$ relative to the
 \emph{effective detour source}
 returned by the endpoint computation of
 Section~\ref{sssec:detour_endpoints}. In the common case this effective
 source coincides with the upstream junction of the first closed edge
-$s_0 = \mathit{from}(e^c_1)$. If that junction has no usable alternative exit,
+$s_0 = \mathit{from}(e_1^c)$. If that junction has no usable alternative exit,
 the endpoint computation moves the source further upstream and adds the
 traversed prefix edges to the blocked set~$B$. In the upstream method, the
 origin $s$ can differ from one plan to another: the effective source, $t$ and
@@ -45,7 +45,6 @@ fallback. Plans with $d > 0$ start further upstream and are tried first during
 multi-plan route rewriting.
 
 \subsubsection{Junction-level graph representation}
-\label{sssec:junction_graph}
 
 The \texttt{deviation\_plan\_maker} operates on a \emph{junction-level}
 directed graph, in contrast to the edge-expanded representation used by
@@ -73,9 +72,9 @@ this module.
 \subsubsection{Detour endpoint computation}
 \label{sssec:detour_endpoints}
 
-Given a sequence of closed edges $E_c = (e^c_1, \ldots, e^c_n)$, the natural
-candidate detour source is the upstream junction of $e^c_1$ and the
-candidate target is the downstream junction of $e^c_n$. However, if the
+Given a sequence of closed edges $E_c = (e_1, \ldots, e_n)$, the natural
+candidate detour source is the upstream junction of $e_1$ and the
+candidate target is the downstream junction of $e_n$. However, if the
 source junction has only one outgoing edge (the first closed edge
 itself), no detour can diverge from it, the same problem arises
 symmetrically at the target if it has only one incoming edge.
@@ -424,7 +423,6 @@ through a different sequence of signalised intersections. The Monte Carlo
 evaluation is used later to separate useful candidates from poor ones.
 
 \subsubsection{Route rewriting}
-\label{sssec:route_rewriting}
 
 Detours are applied by rewriting route files before SUMO starts, rather than
 by using SUMO's dynamic
@@ -448,16 +446,16 @@ $\mathcal{D}^*.P$. This is a splice in the vehicle's edge list.
 \begin{algorithm}[H]
 \caption{\textsc{DepthAwareRewrite}}\label{alg:rewrite}
 \begin{algorithmic}[1]
-\Require vehicle route $\mathcal{Q}$, candidate plans $\{\mathcal{D}_k\}$ sorted by
-         depth (desc), closed edge set $E_c$
-\Ensure rewritten route $\mathcal{Q}'$
-\If{$\mathcal{Q}$ does not traverse any edge in $E_c$}
-  \State \Return $\mathcal{Q}$\hfill\textit{// route unaffected by the closure}
+\Require vehicle route $R$, candidate plans $\mathcal{D}$ sorted by depth (desc),
+         closed edge set $B_c$
+\Ensure rewritten route $R'$
+\If{$R$ does not traverse any edge in $B_c$}
+  \State \Return $R$\hfill\textit{// route unaffected by the closure}
 \EndIf
-\State pick the deepest plan $\mathcal{D}^*$ whose origin $s$ lies on $\mathcal{Q}$
+\State pick the deepest plan $\mathcal{D}^*$ whose origin $s$ lies on $R$
        upstream of the closure
        \hfill\textit{// shallower plans provide deterministic fallback}
-\State splice $\mathcal{D}^*.P$ into $\mathcal{Q}$, replacing the segment that runs
+\State splice $\mathcal{D}^*.P$ into $R$, replacing the segment that runs
        from the edge departing $\mathcal{D}^*.s$ up to the last closed edge
 \State \Return the spliced route
 \end{algorithmic}

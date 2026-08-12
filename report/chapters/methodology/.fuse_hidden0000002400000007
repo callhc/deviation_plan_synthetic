@@ -101,19 +101,16 @@ the closure treatment and the same SUMO seed.
 
 Meanwhile all available metrics are collected and saved for later evaluation. For each iteration $r$, the raw time-loss difference
 \begin{equation}
-  \Delta D_k^{(r)} \;=\; D_k^{(r)} \;-\; D_0^{(r)}
+  \delta_k^{(r)} \;=\; D_k^{(r)} \;-\; D_0^{(r)}
   \label{eq:paired_delta}
 \end{equation}
 measures the effect of plan $\mathcal{D}_k$ relative to the no-closure
 baseline under the same route-choice and SUMO random seed. The estimator
 \begin{equation}
-  \overline{\Delta D_k} = \frac{1}{R}\sum_{r=1}^{R}\Delta D_k^{(r)}
-  \label{eq:paired_delta_mean}
+  \bar{\delta}_k = \frac{1}{R}\sum_{r=1}^{R}\delta_k^{(r)}
 \end{equation}
 compares plans after much of the run-level noise shared by the baseline and
-plan conditions has been removed. The same paired construction is applied to
-every other metric in Section~\ref{sssec:mc_metrics} and is reused unchanged by
-the evaluator in Section~\ref{sssec:evaluator_paired_stats}.
+plan conditions has been removed.
 
 \subsubsection{Per-run routing and detour application}
 \label{sssec:mc_precomp}
@@ -142,28 +139,26 @@ procedure formally.
 \begin{algorithmic}[1]
 \Require network file $G$,
          trip file $\mathcal{T}$,
-         closed edge set $E_c$,
+         closed edge $e_c$,
          candidate plans $\{\mathcal{D}_1, \ldots, \mathcal{D}_K\}$,
-         edge-endpoint map $\mathcal{M}$,
+         edge-endpoint map $\mathcal{E}$,
          run index $r$,
-         simulation window $[T_{\mathrm{start}},\, T_{\mathrm{end}}]$,
+         simulation window $[b,\, e]$,
          random factor $\alpha$
 \Ensure  per-condition metric dictionary for this iteration
 \State $\mathcal{R}_0^{(r)} \leftarrow
        \textsc{DuaRouter}(\mathcal{T},G,r,\alpha)$
        \Comment{baseline route realization}
-\State $M_0^{(r)} \leftarrow
-       \textsc{RunSUMO}(G,\mathcal{R}_0^{(r)},r,T_{\mathrm{start}},T_{\mathrm{end}})$
-\State $\text{results}[\,\text{baseline}\,] \;\leftarrow\; M_0^{(r)}$
+\State $M_0 \leftarrow \textsc{RunSUMO}(G,\mathcal{R}_0^{(r)},r,b,e)$
+\State $\text{results}[\,\text{baseline}\,] \;\leftarrow\; M_0$
 \For{$k \leftarrow 1$ \textbf{to} $K$}
   \State $\mathcal{R}_k^{(r)} \leftarrow
-         \textsc{ApplyDetourToRoutes}(\mathcal{R}_0^{(r)},\mathcal{D}_k,E_c,\mathcal{M})$
-  \State validate that $\mathcal{R}_k^{(r)}$ contains no edge of $E_c$
-  \State $\nu_k^{(r)} \leftarrow
+         \textsc{ApplyDetourToRoutes}(\mathcal{R}_0^{(r)},\mathcal{D}_k,e_c,\mathcal{E})$
+  \State validate that $\mathcal{R}_k^{(r)}$ contains no closed edge $e_c$
+  \State $s_k^{(r)} \leftarrow
          \textsc{CountRerouted}(\mathcal{R}_0^{(r)},\mathcal{R}_k^{(r)})$
-  \State $M_k^{(r)} \leftarrow
-         \textsc{RunSUMO}(G,\mathcal{R}_k^{(r)},r,T_{\mathrm{start}},T_{\mathrm{end}})$
-  \State $\text{results}[\mathcal{D}_k] \;\leftarrow\; M_k^{(r)} \;\cup\; \nu_k^{(r)}$
+  \State $M_k \leftarrow \textsc{RunSUMO}(G,\mathcal{R}_k^{(r)},r,b,e)$
+  \State $\text{results}[\mathcal{D}_k] \;\leftarrow\; M_k \;\cup\; s_k^{(r)}$
 \EndFor
 \State \Return results
 \end{algorithmic}
@@ -172,8 +167,7 @@ procedure formally.
 \textsc{DuaRouter} invokes \texttt{duarouter} with the fixed trip file,
 \texttt{--weights.random-factor} and the run seed. \textsc{RunSUMO} writes a
 minimal SUMO configuration file that specifies the network, the route file,
-the simulation window $[T_{\mathrm{start}}, T_{\mathrm{end}}]$ and the same seed
-$r$, invokes \texttt{sumo}
+the simulation window $[b, e]$ and the same seed $r$, invokes \texttt{sumo}
 as a subprocess and parses the resulting \texttt{tripinfo.xml} output into
 the metrics of Section~\ref{sssec:mc_metrics}. Each condition runs in its own
 subdirectory (\texttt{run\_r/baseline/}, \texttt{run\_r/plan\_k/}), keeping
@@ -217,7 +211,7 @@ fixed inputs to per-run baseline and plan outputs.
         anchor=south west] {repeat for $r=1,\ldots,R$};
 
   \node[result, below=0.85cm of sim] (aggregate)
-    {aggregate paired differences: $\Delta D_k^{(r)}=D_k^{(r)}-D_0^{(r)}$};
+    {aggregate paired differences: $\delta_k^{(r)}=D_k^{(r)}-D_0^{(r)}$};
 
   \draw[arr] (inputs) -- (route);
   \draw[arr] (route) -- (rewrite);
@@ -233,9 +227,8 @@ to that realization and simulates paired baseline-plan conditions.}
 \subsubsection{Performance metrics}
 \label{sssec:mc_metrics}
 
-Each \texttt{tripinfo.xml} file is parsed into a metric vector $M_k^{(r)}$ for
-condition $k$ and run $r$, where $k = 0$ denotes the baseline condition and
-$k = 1,\ldots,K$ the candidate plans. SUMO is configured with
+Each \texttt{tripinfo.xml} file is parsed into a metric vector $M_c^{(r)}$ for
+condition $c$ and run $r$. SUMO is configured with
 \texttt{tripinfo-output.write-unfinished}, so completed trips can be separated
 from unfinished or vaporized records. Aggregate performance is computed only
 on completed trips. The unfinished count is kept as a diagnostic.
@@ -251,10 +244,10 @@ impacted-user metrics from the route and \texttt{tripinfo.xml} files.
     SUMO \texttt{timeLoss} over completed trips, converted from seconds
     to hours,
     \begin{equation}
-      D \;=\; \frac{1}{3600} \sum_{v \in \mathcal{V}_{\mathrm{done}}} \theta_v,
+      D \;=\; \frac{1}{3600} \sum_{v \in \mathcal{V}_{\mathrm{done}}} \lambda_v,
       \label{eq:mc_delay}
     \end{equation}
-    where $\theta_v$ is the vehicle's SUMO \texttt{timeLoss}. This is the
+    where $\lambda_v$ is the vehicle's SUMO \texttt{timeLoss}. This is the
     excess travel time relative to SUMO's ideal traversal of the driven route,
     so it captures both stopped waiting and moving slowdowns.
 
@@ -280,7 +273,7 @@ impacted-user metrics from the route and \texttt{tripinfo.xml} files.
 \end{itemize}
 
 For plan comparison, the evaluator computes paired differences such as
-$\Delta D_k^{(r)}$ in Equation~\eqref{eq:paired_delta} run by run. These raw
+$\delta_k^{(r)}$ in Equation~\eqref{eq:paired_delta} run by run. These raw
 paired observations are preserved in the per-run \texttt{results.json} files
 and are not replaced by only top-level averages.
 

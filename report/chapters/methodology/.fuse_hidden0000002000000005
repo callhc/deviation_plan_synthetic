@@ -76,9 +76,7 @@ of producing a ranking based on incomplete evidence.
 
 For every plan $\mathcal{D}_k$ and every retained Monte Carlo run $r$, the
 basic quantity is the difference between the plan and the baseline from the
-same run. This is the paired difference already introduced in
-Equation~\eqref{eq:paired_delta}. For the primary network-level metric, it
-gives
+same run. For the primary network-level metric, this gives
 \begin{equation}
   \Delta D_k^{(r)} = D_k^{(r)} - D_0^{(r)},
   \label{eq:evaluator_delta_delay}
@@ -99,12 +97,12 @@ improved it. The full vector of paired differences is kept, not only the
 average, because the consistency of an effect matters as much as its mean.
 
 For a generic paired-difference vector
-$x_1,\ldots,x_R$ over the $R$ retained runs, the evaluator reports
+$x_1,\ldots,x_n$, the evaluator reports
 \begin{equation}
-  \bar{x},\quad s_x,\quad \min(x),\quad \max(x),\quad \tilde{x},
+  \bar{x},\quad s,\quad \min(x),\quad \max(x),\quad \tilde{x},
   \label{eq:evaluator_descriptive_stats}
 \end{equation}
-where $\bar{x}$ is the sample mean, $s_x$ the sample standard deviation and
+where $\bar{x}$ is the sample mean, $s$ the sample standard deviation and
 $\tilde{x}$ the median. The mean estimates the expected effect of the plan
 over the seed distribution, the standard deviation describes run-to-run
 variability and the median is kept as a robust centre when a few runs are
@@ -113,7 +111,7 @@ extreme.
 The confidence interval answers a different question: how precisely the
 Monte Carlo experiment has estimated the mean paired effect. Because the true
 standard deviation of the paired effects is unknown and must be estimated
-from the $R$ replications, the normal critical value is replaced by the
+from the $n$ replications, the normal critical value is replaced by the
 Student-\textit{t} critical value. The Student-\textit{t} distribution has
 heavier tails than the normal distribution, so it gives wider intervals when
 only a small number of runs is available. The evaluator uses the standard
@@ -123,7 +121,7 @@ that are too wide to be useful. The interval is computed as
 \begin{equation}
   \bar{x}
   \pm
-  t_{0.975,\,R-1}\frac{s_x}{\sqrt{R}},
+  t_{0.975,\,n-1}\frac{s}{\sqrt{n}},
   \label{eq:evaluator_t_interval}
 \end{equation}
 when at least two runs are available. In repeated experiments satisfying the
@@ -155,7 +153,7 @@ as the baseline in every retained run:
 \begin{equation}
   C_k^{(r)} \geq C_0^{(r)}
   \qquad
-  \forall r \in \{1,\ldots,R\},
+  \forall r \in \{1,\ldots,n\},
   \label{eq:evaluator_feasibility}
 \end{equation}
 where $C_k^{(r)}$ is the number of completed trips under plan
@@ -174,11 +172,9 @@ available, a vehicle is counted as impacted for a plan if its edge sequence
 differs between the baseline route file and the plan-specific route file:
 \begin{equation}
   \mathcal{I}_k =
-  \{\,v : \mathcal{Q}_{k,v} \neq \mathcal{Q}_{0,v}\,\},
+  \{\,v : R_{k,v} \neq R_{0,v}\,\}.
   \label{eq:evaluator_impacted_set}
 \end{equation}
-where $\mathcal{Q}_{k,v}$ is the edge sequence driven by vehicle $v$ under
-plan $\mathcal{D}_k$ and $\mathcal{Q}_{0,v}$ its baseline route.
 If route-difference information is not available, the evaluator can fall back
 to the vehicles whose baseline route crosses the closed edge. This is less
 precise, but it still keeps the analysis focused on users directly connected
@@ -270,10 +266,10 @@ point, not as a claim that the three dimensions are inherently equally
 important.
 
 Because the weights contain judgement, the evaluator also checks how sensitive
-the ranking is to them. It samples $N_w$ weight vectors uniformly from the
+the ranking is to them. It samples weight vectors uniformly from the
 three-criterion simplex using a Dirichlet$(1,1,1)$ distribution. Here a
 weight vector is a triple $(w_1,w_2,w_3)$ with non-negative entries that sum
-to one. For each of the $N_w$ sampled weight vectors, the evaluator
+to one. For each sampled weight vector, the evaluator
 recomputes the ranking. The report then shows how often each
 Pareto-efficient plan ranks first, its mean rank, score quantiles and
 pairwise win probabilities. A plan that wins under the reference weights and

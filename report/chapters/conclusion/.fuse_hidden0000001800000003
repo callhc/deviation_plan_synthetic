@@ -1,10 +1,10 @@
 \section{Conclusion}
 
 This thesis started from a question that road authorities face routinely and
-answer informally: \emph{when a road segment must be closed, which of the possible
-detours should be signposted?} The usual answer relies on local expertise and on
+answer informally: when a road segment must be closed, which of the possible
+detours should be signposted? The usual answer relies on local expertise and on
 a visual reading of the network. The objective here was not to replace that
-expertise, but to give it a reproducible experimental basis, a workflow in
+expertise, but to give it a reproducible experimental basis --- a workflow in
 which candidate deviation plans are generated systematically, simulated under
 identical conditions, compared with paired statistics and ranked according to
 criteria that are stated explicitly rather than left implicit.
@@ -27,7 +27,7 @@ each plan run with a baseline run generated under the same seed so that the
 reported deltas measure the effect of the plan rather than an uncontrolled
 difference between simulations. Finally, an evaluator rejects plans failing a
 throughput feasibility gate, screens the survivors for Pareto dominance across
-incremental delay, mean added travel time and the fraction of impacted users delayed
+incremental delay, mean added travel time and a fraction of impacted users delayed,
 and ranks the non-dominated set with additive weighted scoring whose sensitivity
 to the chosen weights is quantified by resampling the weight simplex.
 
@@ -38,7 +38,7 @@ Four findings follow from the experiments.
 First, automated candidate generation adds information that manual selection
 misses. On the \emph{city\_tiny} network, Yen's algorithm returned replacement
 paths shorter than either manually defined corridor while starting from the same
-closure endpoints and the upstream search returned seventeen distinct
+closure endpoints, and the upstream search returned seventeen distinct
 interception points spread over four levels of upstream depth, against the single
 origin junction available to the manual and Yen plans. Those earlier interception
 points are simply not visible when detours are defined only from the source
@@ -48,31 +48,32 @@ families were not simulated with the same number of Monte Carlo replications, so
 that particular comparison is indicative rather than established.
 
 Second, the pipeline is not tied to the regular geometry of a generated test
-network. Repeating the protocol on an OpenStreetMap extract around Flagey and
+network. Repeating the protocol on an OpenStreetMap extract around Flagey, and
 then on the multi-edge Delta tunnel closure in Auderghem, produced routable
 demand, valid plan representations, reproducible Monte Carlo variation and an
 interpretable recommendation in every case. The Delta case also demonstrates
 that the workflow extends from an illustrative single-edge closure to a
 scheduled, time-limited closure of the kind that motivates the tool in practice.
 
-Third, the decision problem is genuinely multi-criteria and treating it as
+Third, the decision problem is genuinely multi-criteria, and treating it as
 single-objective would have hidden that. In both real topologies the plan
 minimising aggregate delay was not the plan distributing the burden most evenly
-across the impacted population and the recommended plan ranked first in only
+across the impacted population, and the recommended plan ranked first in only
 about three quarters of sampled weight vectors. At Delta the short bypass
 inconveniences a marginally larger share of tunnel users while costing each of
-them far less time (180 against roughly 700 vehicle-minutes over the
-impacted population). Exposing that tension is more useful to a decision maker
+them far less time --- $180$ against roughly $700$ vehicle-minutes over the
+impacted population. Exposing that tension is more useful to a decision maker
 than resolving it arbitrarily.
 
-Fourth and most strongly, the exposure regime changes the stakes of the
+Fourth, and most strongly, the exposure regime changes the stakes of the
 decision even when it does not change the decision. Re-running the identical
 Delta network, plans and demand over a full day instead of the $23{:}00$--$06{:}00$
 window increased the exposed demand by a factor of $13.1$, but the delay penalty
-of the two routes grew by factors of $48.8$ and $52.1$ while the short
+of the two orbital routes grew by factors of $48.8$ and $52.1$ while the short
 bypass grew by $13.6$, essentially in proportion to demand. The recommendation
 was unchanged, yet the cost of choosing wrongly rose from about $2.3$ to about
-$175$~vehicle-hours and the worst-to-best ratio widened from $2.6$ to $9.6$, one plan additionally lost its feasibility. A plan that looks merely
+$175$~vehicle-hours and the worst-to-best ratio widened from $2.6$ to $9.6$; one
+orbital plan additionally lost its feasibility. A plan that looks merely
 suboptimal under light demand can be an operational failure under full demand,
 which argues for evaluating candidates at the loading they will actually
 experience rather than at a convenient one.
@@ -82,12 +83,12 @@ experience rather than at a convenient one.
 The framework's correctness was demonstrated, not its predictive accuracy. All
 demand is synthetic: origin--destination flows come from a gravity model with
 assumed parameters, zoning is an automatic grid rather than a calibrated
-partition and the external-traffic share and daily trip totals are
+partition, and the external-traffic share and daily trip totals are
 configuration constants rather than observed quantities. No result presented
 here should be read as a forecast of delay for Flagey or Delta. The pipeline
 models a single vehicle class, excludes intra-zonal trips, resolves demand at
 hourly granularity, holds the vehicle population fixed across Monte Carlo runs
-so that only route-assignment uncertainty is captured and generates plans
+so that only route-assignment uncertainty is captured, and generates plans
 statically from free-flow topology at the moment the closure is declared. These
 choices are discussed in Section~\ref{sec:limitations} and bound the external
 validity of every number reported.
@@ -100,7 +101,7 @@ counting-device measurements collected during a real roadworks event is the only
 way to test whether the ranking the framework produces matches what happens on
 the road. The second is demand-side uncertainty. Because stochasticity currently
 enters only through randomised route assignment, the reported confidence
-intervals understate the true uncertainty of a closure's impact, resampling
+intervals understate the true uncertainty of a closure's impact; resampling
 departure times, trip cancellations and information-diffusion delays across
 Monte Carlo runs would reflect the decision risk more honestly. The third is
 relaxing the single-closure assumption, so that contiguous worksites and
@@ -111,7 +112,7 @@ spatial-distribution criteria to the evaluator would move the framework closer
 to the operational role it is designed to serve.
 
 Even in its present form, however, it makes the case for a modest but concrete
-shift in practice: deviation plans are comparable objects and a city that
+shift in practice: deviation plans are comparable objects, and a city that
 generates them systematically, simulates them under identical conditions and
 documents why one was preferred has a defensible answer where it previously had
 only an informed opinion.

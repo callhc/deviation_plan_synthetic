@@ -199,14 +199,16 @@ the distribution of that metric under the model's stochastic mechanisms.
 $X_1,\ldots,X_n$ be independent replications of an output metric $X$ with finite mean $\mu$.
 The sample mean $\bar{X}_n = \frac{1}{n}\sum_{i=1}^n X_i$ converges to $\mu$ as $n$ increases. In the
 traffic-simulation setting, $X_i$ is the metric produced by run $i$ with a distinct random seed.
+This subsection uses a generic sample size $n$; from Chapter~\ref{sec:methodology} onwards the
+number of Monte Carlo replications actually executed is written $R$.
 This is why additional replications stabilize the estimated mean, provided the model configuration
 is otherwise held fixed \cite{law_kelton,number_of_runs_traffic}.
 
 \textbf{Confidence intervals.} A sample mean alone does not communicate how much uncertainty
-remains after $n$ runs. For a metric with sample standard deviation $s$, the usual small-sample
+remains after $n$ runs. For a metric with sample standard deviation $s_X$, the usual small-sample
 interval for the mean is
 \[
-  \bar{X}_n \pm t_{0.975,n-1}\frac{s}{\sqrt{n}},
+  \bar{X}_n \pm t_{0.975,n-1}\frac{s_X}{\sqrt{n}},
 \]
 where $t_{0.975,n-1}$ is the Student-$t$ critical value. This is the form used in the evaluator's
 95\% confidence intervals and is also the basis of the run-count formulas used in traffic
@@ -250,17 +252,28 @@ prevents unrealistically synchronized departures and better represents variable 
 
 \subsubsection{Determining the number of simulation runs}
 
-Choosing the number of simulation runs is difficult because the required number is not known in advance. It depends on the variability of the network, the metric studied, the desired precision and the performance gap between candidate plans. Stable networks or clearly separated alternatives may require only a few replications, whereas saturated networks or closely performing plans may require many more runs to obtain a reliable ranking.
+Choosing the number of simulation runs is difficult because the required number is not known in
+advance. It depends on the variability of the network, the metric studied, the desired precision
+and the performance gap between candidate plans. Existing traffic-engineering guidance treats
+repeated random seeds as a way to capture stochastic variation and make uncertainty visible and
+sizes the budget so that a mean is estimated to a stated precision
+\cite{number_of_runs_traffic,fhwa_microsim_2019,txdot_number_runs}.
 
-The number of runs is therefore a methodological choice rather than a fixed property of traffic microsimulation. Existing guidance treats repeated random seeds as a way to capture stochastic variation and make uncertainty visible \cite{number_of_runs_traffic,fhwa_microsim_2019,txdot_number_runs}. The goal is not to identify a universal run count, but to relate the run budget to the uncertainty remaining in the outputs.
+Comparing alternatives is a weaker requirement: the decision needs to know \emph{which} plan is
+best, not the exact delay of each. Simulation-optimisation treats this as a \emph{ranking and
+selection} problem, allocating a fixed budget of replications across $K$ alternatives so as to
+maximise the \emph{probability of correct selection} \cite{kim_nelson_selecting}. Equal allocation
+is generally not efficient: runs spent on an already clearly inferior alternative add little,
+whereas alternatives with high variance or a small gap to the leader are the ones still in doubt.
+Optimal Computing Budget Allocation formalises this and reports large budget reductions for a given
+selection probability \cite{chen2000_ocba} and greedy sequential procedures achieve comparable
+sample efficiency when the number of alternatives is large \cite{li2023greedy}.
 
-In this thesis, the run count is treated as a precision-control choice rather than a
-universal constant. A small number of runs may be enough when demand is stable and
-candidate plans are clearly separated. More runs are needed when congestion is saturated
-or when the best plans have similar mean performance. The implementation therefore
-keeps all paired per-run observations, so that convergence plots and confidence intervals
-can be inspected after the simulations and the run budget can be extended when the
-recommendation is still unstable
+This matters here because each replication costs one \texttt{duarouter} call plus one SUMO run per
+candidate plan. The present work does not implement a sequential allocation rule: it uses a fixed
+budget, relies on the paired design for variance reduction and keeps all per-run observations so
+that the remaining uncertainty can be inspected and the budget extended when the ranking is still
+unstable (Section~\ref{sssec:mc_convergence}).
 
 
 \subsection{Multiple-criteria decision analysis}

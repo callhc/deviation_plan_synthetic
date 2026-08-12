@@ -30,7 +30,7 @@ also expose whether the recommendation is robust. For the manual plans, the
 ranking is unambiguous because \texttt{plan\_1} dominates
 \texttt{plan\_2}. For the Yen and upstream candidates, the results show a
 more realistic decision problem: the best time-based plan is not always the
-best plan on the fraction of impacted users delayed, so the preferred option depends on how the
+best plan on the impacted-user share, so the preferred option depends on how the
 decision maker weights the criteria.
 
 This is an important implication of using a Pareto-based decision layer. When

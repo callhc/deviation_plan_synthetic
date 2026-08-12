@@ -1,0 +1,31 @@
+\section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
+
+Roadworks and scheduled maintenance force city authorities to close road
+segments and publish deviation plans, yet the choice between candidate detours
+is usually made by expert judgement and inspected only qualitatively. This
+thesis develops a reproducible experimental framework that turns that choice
+into a measurable comparison. From a SUMO road network and a Traffic Analysis
+Zone layer, the framework synthesises network-aware demand using a gravity
+origin-destination model, generates candidate detours around a closed edge
+(manually, with Yen's $k$-shortest loopless paths, and with an upstream search
+that intercepts traffic before it reaches the closure), rewrites the routes of
+affected vehicles, and evaluates every candidate against a paired baseline over
+repeated Monte Carlo simulations with randomised route assignment. A decision
+layer rejects infeasible plans, screens the rest for Pareto dominance and ranks
+the survivors by additive weighted scoring, using Dirichlet weight sampling to
+test how far the ranking depends on the chosen weights.
+
+The framework is exercised on three scenarios of increasing realism: a synthetic
+\texttt{city\_tiny} grid, an OpenStreetMap topology around Flagey in Brussels and a closure of the Delta tunnel in Auderghem under both night-time and all-day
+regimes. On the synthetic network, automated generation widened the candidate
+set beyond the manually defined corridors, surfacing both shorter replacement
+paths and interception points upstream of the closure itself. On both
+real topologies the plan minimising aggregate delay was not the one distributing
+the burden most evenly, so the recommendation held in only about three quarters
+of sampled weight vectors (a trade-off the decision layer exposes rather than
+hides behind a single number). Re-scoring the Delta candidates under full-day
+exposure left the recommended plan unchanged but widened the worst-to-best delay
+ratio from $2.6$ to $9.6$, showing that candidates must be evaluated at the
+demand they will actually experience. All demand is synthetic, so the absolute
+figures are not calibrated predictions for any real city.

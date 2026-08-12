@@ -150,10 +150,10 @@ number of completed trips below the baseline.
 \texttt{plan\_1} Pareto-dominates \texttt{plan\_2} on every criterion:
 its mean incremental delay is $6.36$~vh against $8.37$~vh for
 \texttt{plan\_2}, the per-vehicle travel-time penalty is $+0.090$~min
-against $+0.151$~min and the fraction of impacted users delayed, $\phi_\text{net}$, is $0.392$
+against $+0.151$~min and the impacted-user share $\phi_\text{net}$ is $0.392$
 against $0.403$ as illustrated in Table~\ref{tab:results_best_by_strategy}.
 Because \texttt{plan\_2} is Pareto-dominated, no weighting of the three criteria can make it the preferred choice.
-The robustness test confirms this: drawing $N_w=20{,}000$ weight vectors
+The robustness test confirms this: drawing $N=20,000$ weight vectors
 uniformly from the weight simplex (Dirichlet$(1,1,1)$ sampling),
 \texttt{plan\_1} ranks first in every single draw ($100\%$ frequency).
 The evaluator therefore recommends \texttt{plan\_1} as the
@@ -233,7 +233,7 @@ The Pareto screening leaves only two efficient alternatives:
 \texttt{yen\_01} and \texttt{yen\_06}. \texttt{yen\_01} gives the lowest
 delay and travel-time penalty, with a mean incremental delay of
 $4.35$~vh and a mean added travel time of $+0.070$~min per completed trip.
-However, \texttt{yen\_06} has the lowest fraction of impacted users delayed, with
+However, \texttt{yen\_06} has the lowest impacted-user share, with
 $\phi_\text{net}=0.378$ against $0.380$ for \texttt{yen\_01}. This means
 that \texttt{yen\_01} is not a strict Pareto winner: it is better on the two
 time-based criteria, while \texttt{yen\_06} is slightly better on the
@@ -245,12 +245,12 @@ The remaining six plans are Pareto-dominated. In particular,
 \texttt{yen\_08}, so these alternatives are removed before weighted scoring.
 With equal reference weights, the additive score ranks \texttt{yen\_01}
 first. The robustness test confirms this preference but not unanimously:
-drawing $N_w=20{,}000$ weight vectors uniformly from the weight simplex
+drawing $N=20,000$ weight vectors uniformly from the weight simplex
 (Dirichlet$(1,1,1)$ sampling), \texttt{yen\_01} ranks first in $74.95\%$
 of draws, while \texttt{yen\_06} ranks first in $25.05\%$ of draws.
 The evaluator therefore recommends \texttt{yen\_01} as the best
 Yen-generated deviation plan for this closure, while identifying
-\texttt{yen\_06} as a relevant alternative if the fraction of impacted users delayed is given
+\texttt{yen\_06} as a relevant alternative if the impacted-user share is given
 very high priority.
 
 \subsection{Upstream-based plans}
@@ -323,8 +323,8 @@ The Pareto screening keeps six efficient alternatives:
 \texttt{upstream\_16}. Among them, \texttt{upstream\_16} gives the best
 time-based performance, with the lowest mean incremental delay
 ($3.22$~vh) and the lowest mean added travel time
-($+0.058$~min per completed trip). However, it has the highest fraction of impacted users delayed on the Pareto front, with $\phi_\text{net}=0.383$. Conversely,
-\texttt{upstream\_15} has the lowest fraction of impacted users delayed
+($+0.058$~min per completed trip). However, it has the highest impacted-user share on the Pareto front, with $\phi_\text{net}=0.383$. Conversely,
+\texttt{upstream\_15} has the lowest impacted-user share
 ($\phi_\text{net}=0.380$), but a higher delay and travel-time penalty.
 This creates a genuine multi-criteria trade-off rather than a single plan
 dominating all others.
@@ -334,14 +334,14 @@ before weighted scoring. With equal reference weights, the additive score
 ranks \texttt{upstream\_16} first, followed by \texttt{upstream\_14},
 \texttt{upstream\_04}, \texttt{upstream\_08}, \texttt{upstream\_15} and
 \texttt{upstream\_13}. The robustness test supports this recommendation:
-drawing $N_w=20{,}000$ weight vectors uniformly from the weight simplex
+drawing $N=20,000$ weight vectors uniformly from the weight simplex
 (Dirichlet$(1,1,1)$ sampling), \texttt{upstream\_16} ranks first in
 $68.48\%$ of draws. The next most robust first-rank alternative is
 \texttt{upstream\_15}, with $19.22\%$, while \texttt{upstream\_04} and
 \texttt{upstream\_08} rank first in about $6\%$ of draws each. The evaluator
 therefore recommends \texttt{upstream\_16} as the best upstream-generated
 deviation plan for this closure, while noting that the final choice remains
-sensitive to how strongly the fraction of impacted users delayed is weighted.
+sensitive to how strongly the impacted-user share is weighted.
 
 \subsection{Comparison across generation strategies}
 
@@ -478,7 +478,7 @@ on average.}
 The Flagey result is deliberately more nuanced than the two-plan manual result
 on \emph{city\_tiny}. \texttt{plan\_3} is clearly inferior: it has the largest
 incremental delay ($+2.76$~vh), the largest mean travel-time penalty
-($+0.203$~min per completed trip) and the largest fraction of impacted users delayed
+($+0.203$~min per completed trip) and the largest impacted-user share
 ($\phi_\text{net}=0.338$). It is therefore Pareto-dominated by both
 \texttt{plan\_1} and \texttt{plan\_2}.
 
@@ -486,8 +486,8 @@ The choice between \texttt{plan\_1} and \texttt{plan\_2} is a genuine
 multi-criteria trade-off. \texttt{plan\_2} produces the lowest mean
 incremental delay, $+1.03$~vh compared with $+1.34$~vh for
 \texttt{plan\_1}. However, \texttt{plan\_1} has the lower mean travel-time
-penalty ($+0.091$~min compared with $+0.097$~min) and the lower fraction of impacted users delayed ($\phi_\text{net}=0.309$ compared with $0.327$). With equal reference
-weights across delay, travel time and the fraction of impacted users delayed, the additive MCDA
+penalty ($+0.091$~min compared with $+0.097$~min) and the lower impacted-user share ($\phi_\text{net}=0.309$ compared with $0.327$). With equal reference
+weights across delay, travel time and the impacted-user share, the additive MCDA
 score therefore ranks \texttt{plan\_1} first. The robustness test supports
 this recommendation but not unanimously: under 20,000 uniformly sampled
 weight vectors on the three-criterion simplex, \texttt{plan\_1} ranks first
@@ -524,7 +524,7 @@ topology. The Delta experiment asks a harder question: whether it can answer an
 \emph{operationally posed} question, of the kind a road authority actually
 formulates when it schedules maintenance. The study area is the Delta
 interchange in Auderghem, where the E411 enters Brussels and the closure is the
-Delta tunnel between 23:00 and 06:00 \cite{rtbf_delta_2024}. This is precisely the class of decision the present framework is meant to
+Delta tunnel between 23:00 and 06:00. \cite{rtbf_delta_2024}. This is precisely the class of decision the present framework is meant to
 support: a planned, announced closure of a known structure, for which several
 diversion itineraries exist and must be chosen between and signal timings
 adjusted, all of it before the first vehicle is affected.
@@ -607,7 +607,7 @@ roughly $78\,\%$.
 
 The Pareto screening nevertheless retains all three alternatives and the reason
 is instructive. \texttt{plan\_1} is best on both time criteria, but it is
-\emph{worst} on the fraction of impacted users delayed: $\phi_\text{net}=0.909$ against $0.893$
+\emph{worst} on the impacted-user share: $\phi_\text{net}=0.909$ against $0.893$
 for \texttt{plan\_2} and $0.891$ for \texttt{plan\_3}. Since $\phi_\text{net}$
 is the share of impacted vehicles whose journey ends up longer than in the
 baseline, this says that the short bypass inconveniences a slightly larger
@@ -619,12 +619,12 @@ weighting.
 
 With equal reference weights the additive score ranks \texttt{plan\_1} first.
 The robustness test supports the recommendation without making it unanimous:
-under $N_w=20{,}000$ weight vectors drawn uniformly from the three-criterion
+under $N=20,000$ weight vectors drawn uniformly from the three-criterion
 simplex (Dirichlet$(1,1,1)$ sampling), \texttt{plan\_1} ranks first in
 $74.20\,\%$ of draws and \texttt{plan\_3} in $25.80\,\%$, while \texttt{plan\_2}
 never ranks first. The evaluator therefore recommends \texttt{plan\_1}, the
 0.777~km bypass, while identifying \texttt{plan\_3} as the relevant alternative
-if the fraction of impacted users delayed is given very high priority.
+if the impacted-user share is given very high priority.
 Figure~\ref{fig:results_delta_decision_summary} summarises the trade-off.
 
 \begin{figure}[H]
@@ -632,8 +632,8 @@ Figure~\ref{fig:results_delta_decision_summary} summarises the trade-off.
   \safeincludegraphics[width=\textwidth]{results_delta_decision_summary.pdf}
   \caption{Evaluator trade-off for the Delta tunnel night closure. No candidate
   is Pareto-dominated: \texttt{plan\_1} minimises both time-based criteria but
-  has the highest fraction of impacted users delayed, since it slows a marginally
-  larger share of the impacted vehicles while costing each of them substantially less time. All
+  has the highest impacted-user share, since it slows a marginally larger fraction of
+  the impacted vehicles while costing each of them substantially less time. All
   three alternatives use the origin and destination nodes shown in
   Figure~\ref{fig:results_delta_network_detours}.}
   \label{fig:results_delta_decision_summary}
@@ -742,7 +742,7 @@ replication budget needed for a stable answer is itself regime-dependent. The
 30 runs used here are ample for the night comparison and adequate but no longer
 generous for the all-day one.
 
-The fraction of impacted users delayed tells the complementary story.
+The impacted-user share tells the complementary story.
 Figure~\ref{fig:results_delta_allday_decision_summary} shows the all-day
 trade-off in the same layout used for the night closure. Under full-day
 loading, $\phi_\text{net}$ rises for \texttt{plan\_1} from $0.909$ to $0.958$

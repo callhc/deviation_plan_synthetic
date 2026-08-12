@@ -1,0 +1,134 @@
+\section*{Notation}
+\addcontentsline{toc}{section}{Notation}
+\label{sec:notation}
+
+The symbols below are grouped by the pipeline stage in which they are
+introduced and are used consistently throughout the document. Terms rather than
+symbols (SUMO, TAZ, OD matrix, deviation plan, baseline, MCDA) are defined in
+Table~\ref{tab:method_concepts}. Where a symbol carries a run index it is
+written as a parenthesised superscript, $x^{(r)}$, and where it refers to a
+candidate plan it carries the subscript $k$, with $k=0$ reserved for the
+baseline condition.
+
+\vspace{0.6em}
+\noindent\textbf{Network and graph}
+\nopagebreak
+
+\begin{longtable}{@{}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.60\linewidth}p{0.16\linewidth}@{}}
+\toprule
+Symbol & Meaning & Introduced \\
+\midrule
+\endfirsthead
+\toprule
+Symbol & Meaning & Introduced \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+
+$G=(V,E,\ell)$ & Weighted directed junction-level graph of the road network \newline & \S\ref{subsec:deviation_plan_maker} \\
+$V$ & Set of junctions (graph nodes) & \S\ref{subsec:deviation_plan_maker} \\
+$E$ & Set of road edges (graph arcs) & \S\ref{subsec:deviation_plan_maker} \\
+$\ell(e)$ & Length of edge $e$ in meters; $\ell(P)$ is the total length of path $P$ & \S\ref{subsec:deviation_plan_maker} \\
+$n_L(e)$ & Number of lanes of edge $e$ & Eq.~\eqref{eq:zone_mass} \\
+$\deg(v)$ & Number of edges incident to junction $v$ in the queried direction & \S\ref{sssec:junction_graph} \\
+$G'$ & Residual graph $(V, E\setminus B)$ used for detour search & Eq.~\eqref{eq:deviation_plan} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\textbf{Demand generation}}\\
+\addlinespace
+$i,\,j$ & Origin and destination zone indices & \S\ref{ssec:stage_1_demand_generation} \\
+$\mathcal{E}_i$ & Set of road edges contained in zone $i$ & Eq.~\eqref{eq:zone_mass} \\
+$m_i$ & Zone mass of zone $i$, a lane-kilometre proxy for zonal activity & Eq.~\eqref{eq:zone_mass} \\
+$N$ & Total daily demand, in trips & \S\ref{par:temporal_demand_profile} \\
+$h$ & Hour of the simulated day, $h=0,\ldots,23$ & \S\ref{par:temporal_demand_profile} \\
+$p_h$ & Share of the daily demand departing in hour $h$ & Eq.~\eqref{eq:twopeak_gaussian} \\
+$n_h$ & Integer number of trips departing in hour $h$; $\sum_h n_h = N$ & \S\ref{par:temporal_demand_profile} \\
+$g(h;\mu,\sigma)$ & Gaussian kernel centred on hour $\mu$ with spread $\sigma$ & Eq.~\eqref{eq:twopeak_gaussian} \\
+$\mu_{AM},\,\mu_{PM}$ & Morning and evening peak hours & Eq.~\eqref{eq:twopeak_gaussian} \\
+$a_{AM},\,a_{PM}$ & Amplitudes of the morning and evening peaks & Eq.~\eqref{eq:twopeak_gaussian} \\
+$\sigma$ & Temporal spread of the demand peaks, in hours & Eq.~\eqref{eq:twopeak_gaussian} \\
+$c_{ij}$ & Travel-cost impedance from zone $i$ to zone $j$, in meters & Eq.~\eqref{eq:gravity_model} \\
+$\beta$ & Distance-decay parameter of the gravity model & Eq.~\eqref{eq:gravity_model} \\
+$\gamma_{ij}$ & Unnormalised gravity weight of OD pair $(i,j)$ & Eq.~\eqref{eq:gravity_model} \\
+$\Theta_{ij}$ & Normalised OD share matrix; $\sum_{ij}\Theta_{ij}=1$ & Eq.~\eqref{eq:od_share} \\
+$O_i$ & Origin (production) share of zone $i$ & Eq.~\eqref{eq:od_share} \\
+$T^h_{ij}$ & Integer number of trips from zone $i$ to zone $j$ in hour $h$ & \S\ref{par:gravity_od_model} \\
+$\rho_i,\,\varepsilon_i$ & Residential and employment weights of zone $i$ (commute overlay) & \S\ref{par:commute_overlay} \\
+$\omega$ & Commute-overlay mixing strength (\texttt{peak\_weight}); $\omega=0$ recovers the base model & Eq.~\eqref{eq:commute_blend} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\textbf{Route library and trip instantiation}}\\
+\addlinespace
+$k$ & Number of shortest paths requested from Yen's algorithm & \S\ref{par:k_shortest_candidate_routes} \\
+$n_s$ & Number of sampled (origin-edge, destination-edge) pairs per OD pair & \S\ref{par:k_shortest_candidate_routes} \\
+$\mathcal{L}_{ij}$ & Route library: candidate paths retained for OD pair $(i,j)$ & \S\ref{par:k_shortest_candidate_routes} \\
+$\pi$ & A path, as an ordered edge sequence & \S\ref{par:route_selection} \\
+$t^{\mathrm{dep}}_i$ & Departure time of trip $i$, drawn uniformly within its hour & \S\ref{par:departure_time} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\textbf{Closure and deviation plans}}\\
+\addlinespace
+$E_c$ & Ordered set of closed edges $(e^c_1,\ldots,e^c_n)$ & \S\ref{sssec:detour_endpoints} \\
+$B$ & Blocked set, $B \supseteq E_c$: edges the detour search may not use & Eq.~\eqref{eq:deviation_plan} \\
+$s$ & Detour origin: junction at which a plan begins & Eq.~\eqref{eq:deviation_plan} \\
+$t$ & Detour target: junction at which a plan rejoins the network & Eq.~\eqref{eq:deviation_plan} \\
+$s_0,\,t_0$ & Natural (pre-promotion) endpoints of the closure & \S\ref{sssec:detour_endpoints} \\
+$P$ & Detour path $(a_1,\ldots,a_{|P|})$ from $s$ to $t$ in $G'$ & Eq.~\eqref{eq:deviation_plan} \\
+$d$ & BFS depth of a plan origin relative to the effective detour source & Eq.~\eqref{eq:deviation_plan} \\
+$d_{\max}$ & Maximum upstream search depth & \S\ref{par:upstream} \\
+$\mathcal{D}$ & A deviation plan, the tuple $(s,t,P,\ell(P),d)$ & Eq.~\eqref{eq:deviation_plan} \\
+$\mathcal{D}_k$ & The $k$-th candidate deviation plan & \S\ref{sssec:mc_design} \\
+$\mathcal{D}^*$ & Plan selected for a given vehicle during route rewriting & \S\ref{sssec:route_rewriting} \\
+$\mathcal{P}$ & Ordered list of paths returned by a candidate-generation method & \S\ref{par:yen_dpm} \\
+$P_i$ & The $i$-th shortest path accepted by Yen's algorithm & \S\ref{par:yen_dpm} \\
+$u$ & An upstream junction discovered by the reverse BFS, at depth $d(u)$ & \S\ref{par:upstream} \\
+$K$ & Number of candidate plans evaluated & \S\ref{sssec:mc_iteration} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\textbf{Monte Carlo simulation}}\\
+\addlinespace
+$r$ & Monte Carlo run index (also the random seed of that run) & \S\ref{sssec:mc_design} \\
+$R$ & Number of Monte Carlo runs retained for the paired analysis & \S\ref{sssec:mc_convergence} \\
+$\mathcal{T}$ & Fixed trip file (\texttt{trips.xml}) shared by every run & Eq.~\eqref{eq:duarouter_run} \\
+$\alpha$ & Upper bound of \texttt{duarouter}'s randomised edge-cost multiplier & Eq.~\eqref{eq:duarouter_run} \\
+$\mathcal{R}^{(r)}_0$ & Baseline route realisation of run $r$ & Eq.~\eqref{eq:duarouter_run} \\
+$\mathcal{R}^{(r)}_k$ & Route realisation of run $r$ after applying plan $\mathcal{D}_k$ & \S\ref{sssec:mc_iteration} \\
+$\mathcal{Q}_{k,v}$ & Edge sequence driven by vehicle $v$ under plan $\mathcal{D}_k$ & Eq.~\eqref{eq:evaluator_impacted_set} \\
+$\mathcal{M}$ & Edge-endpoint map used when splicing a detour into a route & \S\ref{sssec:mc_iteration} \\
+$M^{(r)}_k$ & Metric vector of condition $k$ in run $r$ & \S\ref{sssec:mc_metrics} \\
+$\nu^{(r)}_k$ & Number of vehicles rerouted by plan $\mathcal{D}_k$ in run $r$ & \S\ref{sssec:mc_iteration} \\
+$[T_{\mathrm{start}}, T_{\mathrm{end}}]$ & Simulated time window & \S\ref{sssec:mc_iteration} \\
+$\mathcal{V}_{\mathrm{done}}$ & Set of vehicles completing their trip within the window & Eq.~\eqref{eq:mc_delay} \\
+$\theta_v$ & SUMO \texttt{timeLoss} of vehicle $v$, in seconds & Eq.~\eqref{eq:mc_delay} \\
+$\tau_v$ & Door-to-door duration of trip $v$, in seconds & Eq.~\eqref{eq:mc_tt} \\
+$D$ & Total time-loss delay over completed trips, in vehicle-hours & Eq.~\eqref{eq:mc_delay} \\
+$\bar{\tau}$ & Mean travel time per completed trip, in minutes & Eq.~\eqref{eq:mc_tt} \\
+$C^{(r)}_k$ & Number of trips completed under condition $k$ in run $r$ & Eq.~\eqref{eq:evaluator_feasibility} \\
+\addlinespace
+\multicolumn{3}{@{}l}{\textbf{Evaluation and decision support}}\\
+\addlinespace
+$\Delta D^{(r)}_k$ & Paired time-loss delay difference, $D^{(r)}_k - D^{(r)}_0$ & Eq.~\eqref{eq:paired_delta} \\
+$\overline{\Delta D_k}$ & Mean paired delay difference over the $R$ runs & Eq.~\eqref{eq:paired_delta_mean} \\
+$\Delta\bar{\tau}^{(r)}_k$ & Paired mean-travel-time difference & Eq.~\eqref{eq:evaluator_delta_travel_time} \\
+$\bar{x},\,s_x,\,\tilde{x}$ & Sample mean, sample standard deviation and median of a paired-difference vector & Eq.~\eqref{eq:evaluator_descriptive_stats} \\
+$t_{0.975,\,R-1}$ & Student-$t$ critical value for a two-sided 95\% interval & Eq.~\eqref{eq:evaluator_t_interval} \\
+$\mathcal{I}_k$ & Set of vehicles impacted by plan $\mathcal{D}_k$ & Eq.~\eqref{eq:evaluator_impacted_set} \\
+$\Delta T^{(r)}_{k,\mathcal{I}}$ & Total additional travel time of impacted users, in vehicle-minutes & Eq.~\eqref{eq:evaluator_impacted_delta_time} \\
+$\phi_{\mathrm{net}}$ & Fraction of impacted users whose travel time increased & Eq.~\eqref{eq:evaluator_phi} \\
+$q$ & Decision-criterion index & Eq.~\eqref{eq:evaluator_normalisation} \\
+$x_{kq}$ & Raw value of plan $k$ on criterion $q$ & Eq.~\eqref{eq:evaluator_normalisation} \\
+$z_{kq}$ & Min-max normalised value of plan $k$ on criterion $q$ & Eq.~\eqref{eq:evaluator_normalisation} \\
+$w_q$ & Weight of criterion $q$; $w_q \geq 0$ and $\sum_q w_q = 1$ & Eq.~\eqref{eq:evaluator_additive_score} \\
+$S_k$ & Additive weighted score of plan $k$; lower is better & Eq.~\eqref{eq:evaluator_additive_score} \\
+$N_w$ & Number of weight vectors sampled in the sensitivity analysis & \S\ref{sssec:evaluator_mcda} \\
+
+\end{longtable}
+
+\noindent Two conventions are worth stating explicitly. First, all three
+decision criteria of Equation~\eqref{eq:evaluator_criteria_vector} are
+expressed as \emph{costs}, so lower values are preferred everywhere and a
+positive paired difference always means that a plan worsened the metric.
+Second, $k$ denotes the number of shortest paths requested from Yen's
+algorithm in Sections~\ref{par:k_shortest_candidate_routes}
+and~\ref{par:yen_dpm}, and the plan index thereafter; the two coincide for
+Yen-generated families, where the $k$ enumerated paths become the $K$ evaluated
+plans.

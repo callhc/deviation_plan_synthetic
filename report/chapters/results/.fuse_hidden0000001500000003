@@ -150,10 +150,10 @@ number of completed trips below the baseline.
 \texttt{plan\_1} Pareto-dominates \texttt{plan\_2} on every criterion:
 its mean incremental delay is $6.36$~vh against $8.37$~vh for
 \texttt{plan\_2}, the per-vehicle travel-time penalty is $+0.090$~min
-against $+0.151$~min and the fraction of impacted users delayed, $\phi_\text{net}$, is $0.392$
+against $+0.151$~min and the fraction of impacted users delayed $\phi_\text{net}$ is $0.392$
 against $0.403$ as illustrated in Table~\ref{tab:results_best_by_strategy}.
 Because \texttt{plan\_2} is Pareto-dominated, no weighting of the three criteria can make it the preferred choice.
-The robustness test confirms this: drawing $N_w=20{,}000$ weight vectors
+The robustness test confirms this: drawing $N=20,000$ weight vectors
 uniformly from the weight simplex (Dirichlet$(1,1,1)$ sampling),
 \texttt{plan\_1} ranks first in every single draw ($100\%$ frequency).
 The evaluator therefore recommends \texttt{plan\_1} as the
@@ -245,7 +245,7 @@ The remaining six plans are Pareto-dominated. In particular,
 \texttt{yen\_08}, so these alternatives are removed before weighted scoring.
 With equal reference weights, the additive score ranks \texttt{yen\_01}
 first. The robustness test confirms this preference but not unanimously:
-drawing $N_w=20{,}000$ weight vectors uniformly from the weight simplex
+drawing $N=20,000$ weight vectors uniformly from the weight simplex
 (Dirichlet$(1,1,1)$ sampling), \texttt{yen\_01} ranks first in $74.95\%$
 of draws, while \texttt{yen\_06} ranks first in $25.05\%$ of draws.
 The evaluator therefore recommends \texttt{yen\_01} as the best
@@ -334,7 +334,7 @@ before weighted scoring. With equal reference weights, the additive score
 ranks \texttt{upstream\_16} first, followed by \texttt{upstream\_14},
 \texttt{upstream\_04}, \texttt{upstream\_08}, \texttt{upstream\_15} and
 \texttt{upstream\_13}. The robustness test supports this recommendation:
-drawing $N_w=20{,}000$ weight vectors uniformly from the weight simplex
+drawing $N=20,000$ weight vectors uniformly from the weight simplex
 (Dirichlet$(1,1,1)$ sampling), \texttt{upstream\_16} ranks first in
 $68.48\%$ of draws. The next most robust first-rank alternative is
 \texttt{upstream\_15}, with $19.22\%$, while \texttt{upstream\_04} and
@@ -524,7 +524,7 @@ topology. The Delta experiment asks a harder question: whether it can answer an
 \emph{operationally posed} question, of the kind a road authority actually
 formulates when it schedules maintenance. The study area is the Delta
 interchange in Auderghem, where the E411 enters Brussels and the closure is the
-Delta tunnel between 23:00 and 06:00 \cite{rtbf_delta_2024}. This is precisely the class of decision the present framework is meant to
+Delta tunnel between 23:00 and 06:00. \cite{rtbf_delta_2024}. This is precisely the class of decision the present framework is meant to
 support: a planned, announced closure of a known structure, for which several
 diversion itineraries exist and must be chosen between and signal timings
 adjusted, all of it before the first vehicle is affected.
@@ -619,7 +619,7 @@ weighting.
 
 With equal reference weights the additive score ranks \texttt{plan\_1} first.
 The robustness test supports the recommendation without making it unanimous:
-under $N_w=20{,}000$ weight vectors drawn uniformly from the three-criterion
+under $N=20,000$ weight vectors drawn uniformly from the three-criterion
 simplex (Dirichlet$(1,1,1)$ sampling), \texttt{plan\_1} ranks first in
 $74.20\,\%$ of draws and \texttt{plan\_3} in $25.80\,\%$, while \texttt{plan\_2}
 never ranks first. The evaluator therefore recommends \texttt{plan\_1}, the
@@ -632,8 +632,8 @@ Figure~\ref{fig:results_delta_decision_summary} summarises the trade-off.
   \safeincludegraphics[width=\textwidth]{results_delta_decision_summary.pdf}
   \caption{Evaluator trade-off for the Delta tunnel night closure. No candidate
   is Pareto-dominated: \texttt{plan\_1} minimises both time-based criteria but
-  has the highest fraction of impacted users delayed, since it slows a marginally
-  larger share of the impacted vehicles while costing each of them substantially less time. All
+  has the highest fraction of impacted users delayed, since it slows a marginally larger fraction of
+  the impacted vehicles while costing each of them substantially less time. All
   three alternatives use the origin and destination nodes shown in
   Figure~\ref{fig:results_delta_network_detours}.}
   \label{fig:results_delta_decision_summary}
